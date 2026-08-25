@@ -1,0 +1,161 @@
+[
+  {
+    "interactions": [
+      "focusable"
+    ],
+    "center": "[160,320]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Saldo Pembukaan",
+    "interactions": [
+      "focusable"
+    ],
+    "center": "[160,30]",
+    "key": 3506402
+  },
+  {
+    "interactions": [
+      "focusable",
+      "scrollable"
+    ],
+    "center": "[160,313]",
+    "bounds": "[0,60][320,567]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Mulai Shift",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[160,604]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Kembali",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[32,30]",
+    "key": 3506402
+  },
+  {
+    "text": "Saldo Pembukaan",
+    "center": "[159,29]",
+    "key": 3506402
+  },
+  {
+    "text": "Mulai Shift",
+    "center": "[160,604]",
+    "key": 3506402
+  },
+  {
+    "text": "",
+    "center": "[32,30]",
+    "key": 3506402
+  },
+  {
+    "text": "",
+    "center": "[160,112]",
+    "key": 3506402
+  },
+  {
+    "text": "Mulai shift Anda",
+    "center": "[159,159]",
+    "key": 3506402
+  },
+  {
+    "text": "Masukkan saldo awal setiap metode pembayaran sebelum kasir aktif.",
+    "center": "[160,193]",
+    "key": 3506402
+  },
+  {
+    "text": "Detail Sesi",
+    "center": "[73,263]",
+    "key": 3506402
+  },
+  {
+    "text": "Kasir",
+    "center": "[93,291]",
+    "key": 3506402
+  },
+  {
+    "text": "Outlet",
+    "center": "[220,291]",
+    "key": 3506402
+  },
+  {
+    "text": "Siti Rahma",
+    "center": "[93,311]",
+    "key": 3506402
+  },
+  {
+    "text": "Roti Ropi Bakery",
+    "center": "[220,311]",
+    "key": 3506402
+  },
+  {
+    "text": "Profil POS",
+    "center": "[93,342]",
+    "key": 3506402
+  },
+  {
+    "text": "Mata Uang",
+    "center": "[220,342]",
+    "key": 3506402
+  },
+  {
+    "text": "Main Counter 01",
+    "center": "[93,362]",
+    "key": 3506402
+  },
+  {
+    "text": "IDR",
+    "center": "[220,362]",
+    "key": 3506402
+  },
+  {
+    "text": "Dana Pembukaan",
+    "center": "[100,434]",
+    "key": 3506402
+  },
+  {
+    "text": "Tunai",
+    "center": "[160,462]",
+    "key": 3506402
+  },
+  {
+    "text": "Rp ",
+    "center": "[57,497]",
+    "key": 3506402
+  },
+  {
+    "text": "200.000",
+    "content-desc": "Tunai, format rupiah",
+    "interactions": [
+      "clickable",
+      "focusable",
+      "long-clickable"
+    ],
+    "center": "[173,497]",
+    "key": 3506402
+  },
+  {
+    "text": "QRIS",
+    "center": "[160,542]",
+    "key": 3506402
+  },
+  {
+    "text": "0",
+    "content-desc": "QRIS, format rupiah",
+    "interactions": [
+      "clickable",
+      "focusable",
+      "long-clickable"
+    ],
+    "center": "[173,563]",
+    "key": 3506402
+  }
+]

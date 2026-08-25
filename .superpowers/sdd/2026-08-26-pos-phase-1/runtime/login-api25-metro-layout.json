@@ -1,0 +1,89 @@
+[
+  {
+    "interactions": [
+      "focusable",
+      "scrollable"
+    ],
+    "state": [
+      "focused"
+    ],
+    "center": "[160,304]",
+    "bounds": "[0,24][320,584]",
+    "resource-id": "rn_redbox_stack",
+    "key": 3506402
+  },
+  {
+    "text": "Unable to load script.\n\nMake sure you\u0027re running Metro or that your bundle \u0027index.android.bundle\u0027 is packaged correctly for release.\n\nThe device must either be USB connected (with bundler set to \"localhost:8081\") or be on the same Wi-Fi network as your computer (with bundler set to your computer IP) to connect to Metro.\n\nIf you\u0027re using USB on a physical device, make sure you also run this command:\n  adb reverse tcp:8081 tcp:8081",
+    "center": "[160,203]",
+    "resource-id": "catalyst_redbox_title",
+    "key": 3506402
+  },
+  {
+    "text": "DISMISS\n(ESC)",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[80,612]",
+    "resource-id": "rn_redbox_dismiss_button",
+    "key": 3506402
+  },
+  {
+    "text": "RELOAD\n(R, R)",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[240,612]",
+    "resource-id": "rn_redbox_reload_button",
+    "key": 3506402
+  },
+  {
+    "text": "loadJSBundleFromAssets",
+    "center": "[160,399]",
+    "resource-id": "rn_frame_method",
+    "key": 3506402
+  },
+  {
+    "text": "ReactInstance.kt",
+    "center": "[160,417]",
+    "resource-id": "rn_frame_file",
+    "key": 3506402
+  },
+  {
+    "text": "access$loadJSBundleFromAssets",
+    "center": "[160,451]",
+    "resource-id": "rn_frame_method",
+    "key": 3506402
+  },
+  {
+    "text": "ReactInstance.kt:86",
+    "center": "[160,469]",
+    "resource-id": "rn_frame_file",
+    "key": 3506402
+  },
+  {
+    "text": "loadScriptFromAssets",
+    "center": "[160,503]",
+    "resource-id": "rn_frame_method",
+    "key": 3506402
+  },
+  {
+    "text": "ReactInstance.kt:336",
+    "center": "[160,521]",
+    "resource-id": "rn_frame_file",
+    "key": 3506402
+  },
+  {
+    "text": "loadScript",
+    "center": "[160,555]",
+    "resource-id": "rn_frame_method",
+    "key": 3506402
+  },
+  {
+    "text": "JSBundleLoader.kt:33",
+    "center": "[160,573]",
+    "resource-id": "rn_frame_file",
+    "key": 3506402
+  }
+]

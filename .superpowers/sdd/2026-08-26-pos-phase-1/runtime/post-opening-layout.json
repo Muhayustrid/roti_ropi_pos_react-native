@@ -1,0 +1,106 @@
+[
+  {
+    "content-desc": "Tutup dialog",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[160,320]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Konfirmasi Pembukaan, , Cek sekali lagi. Saldo pembukaan tidak dapat diubah setelah shift dimulai., Tunai, Rp 200.000, QRIS, Rp 0, Total, Rp 200.000",
+    "interactions": [
+      "focusable"
+    ],
+    "center": "[160,418]",
+    "key": 3506402
+  },
+  {
+    "text": "Konfirmasi Pembukaan",
+    "center": "[104,225]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Tutup",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[280,226]",
+    "key": 3506402
+  },
+  {
+    "text": "",
+    "center": "[160,296]",
+    "key": 3506402
+  },
+  {
+    "text": "Cek sekali lagi. Saldo pembukaan tidak dapat diubah setelah shift dimulai.",
+    "center": "[160,346]",
+    "key": 3506402
+  },
+  {
+    "text": "Tunai",
+    "center": "[45,402]",
+    "key": 3506402
+  },
+  {
+    "text": "Rp 200.000",
+    "center": "[258,402]",
+    "key": 3506402
+  },
+  {
+    "text": "QRIS",
+    "center": "[43,428]",
+    "key": 3506402
+  },
+  {
+    "text": "Rp 0",
+    "center": "[278,428]",
+    "key": 3506402
+  },
+  {
+    "text": "Total",
+    "center": "[45,472]",
+    "key": 3506402
+  },
+  {
+    "text": "Rp 200.000",
+    "center": "[252,472]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Konfirmasi \u0026 Mulai",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[160,536]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Ubah Saldo",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[160,600]",
+    "key": 3506402
+  },
+  {
+    "text": "",
+    "center": "[280,226]",
+    "key": 3506402
+  },
+  {
+    "text": "Konfirmasi \u0026 Mulai",
+    "center": "[160,536]",
+    "key": 3506402
+  },
+  {
+    "text": "Ubah Saldo",
+    "center": "[160,600]",
+    "key": 3506402
+  }
+]

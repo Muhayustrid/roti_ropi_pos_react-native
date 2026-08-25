@@ -1,0 +1,82 @@
+[
+  {
+    "interactions": [
+      "focusable"
+    ],
+    "center": "[160,320]",
+    "key": 3506402
+  },
+  {
+    "interactions": [
+      "focusable",
+      "scrollable"
+    ],
+    "center": "[160,320]",
+    "bounds": "[0,0][320,640]",
+    "key": 3506402
+  },
+  {
+    "text": "",
+    "center": "[160,147]",
+    "key": 3506402
+  },
+  {
+    "text": "Roti Ropi",
+    "center": "[160,206]",
+    "key": 3506402
+  },
+  {
+    "text": "Sistem Point of Sale",
+    "center": "[160,234]",
+    "key": 3506402
+  },
+  {
+    "text": "Server ERPNext",
+    "center": "[88,281]",
+    "key": 3506402
+  },
+  {
+    "text": "",
+    "center": "[266,281]",
+    "key": 3506402
+  },
+  {
+    "text": "oauth-staging.rotiropi.web.id",
+    "center": "[160,303]",
+    "key": 3506402
+  },
+  {
+    "text": "Anda akan masuk dengan aman melalui ERPNext.",
+    "center": "[160,355]",
+    "key": 3506402
+  },
+  {
+    "content-desc": "Lanjut dengan ERPNext",
+    "interactions": [
+      "clickable",
+      "focusable"
+    ],
+    "center": "[160,413]",
+    "key": 3506402
+  },
+  {
+    "text": "Kata sandi hanya dimasukkan di halaman masuk ERPNext yang aman.",
+    "center": "[160,465]",
+    "key": 3506402
+  },
+  {
+    "text": "v1.2.0",
+    "center": "[49,518]",
+    "key": 3506402
+  },
+  {
+    "text": "Staging",
+    "center": "[266,518]",
+    "key": 3506402
+  },
+  {
+    "text": "Lanjut dengan ERPNext",
+    "center": "[160,413]",
+    "key": 3506402
+  }
+]
