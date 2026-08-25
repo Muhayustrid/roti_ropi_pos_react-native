@@ -19,7 +19,7 @@ import { usePosState, usePosDerived, usePosActions } from '../../state/PosContex
 import { PosBrandBar } from '../../components/PosBars';
 import { PosSearchField } from '../../components/PosField';
 import { PosNavigation, type PosNavTab } from '../../components/PosNavigation';
-import { ResponsiveModal } from '../../components/ResponsiveModal';
+import { PosCartSheet } from '../../components/PosCartSheet';
 import { ProductCard } from './ProductCard';
 import { CartContent } from './CartContent';
 import { CustomerPicker } from './CustomerPicker';
@@ -41,7 +41,8 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
   const actions = usePosActions();
 
   // Modals state
-  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [_cartModalVisible, _setCartModalVisible] = useState(false);
+  const [cartSheetVisible, setCartSheetVisible] = useState(false);
   const [customerModalVisible, setCustomerModalVisible] = useState(false);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
 
@@ -59,7 +60,7 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
   );
 
   const handleCheckout = useCallback(() => {
-    setCartModalVisible(false);
+    _setCartModalVisible(false);
     if (onCheckout) {
       onCheckout();
     } else {
@@ -238,7 +239,10 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
           {!windowClass.hasSidePane && state.cart.length > 0 ? (
             <View style={styles.compactCartBarWrapper}>
               <Pressable
-                onPress={() => setCartModalVisible(true)}
+                onPress={() => {
+          setCartSheetVisible(true);
+          _setCartModalVisible(false);
+        }}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel={`Lihat keranjang, ${totalCartCount} item, total ${formatRupiah(
@@ -291,29 +295,25 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
         />
       ) : null}
 
-      {/* Compact / Short Landscape Cart Bottom Sheet Modal */}
-      {!windowClass.hasSidePane ? (
-        <ResponsiveModal
-          visible={cartModalVisible}
-          onClose={() => setCartModalVisible(false)}
-          title="Keranjang Anda"
-          maxWidth={500}
-        >
-          <View style={{ height: height * 0.7 }}>
-            <CartContent
-              cart={state.cart}
-              customer={state.customer}
-              promo={state.promo}
-              couponCode={state.couponCode}
-              onSelectCustomerClick={() => setCustomerModalVisible(true)}
-              onSelectOfferClick={() => setOfferModalVisible(true)}
-              onIncrement={handleIncrement}
-              onDecrement={handleDecrement}
-              onRemove={handleRemove}
-              onCheckout={handleCheckout}
-            />
-          </View>
-        </ResponsiveModal>
+      {/* Compact / Short Landscape Interactive Cart Bottom Sheet */}
+      {!windowClass.hasSidePane && cartSheetVisible ? (
+        <PosCartSheet
+          visible={true}
+          cart={state.cart}
+          customer={state.customer}
+          promo={state.promo}
+          couponCode={state.couponCode}
+          onSelectCustomerClick={() => setCustomerModalVisible(true)}
+          onSelectOfferClick={() => setOfferModalVisible(true)}
+          onIncrement={handleIncrement}
+          onDecrement={handleDecrement}
+          onRemove={handleRemove}
+          onCheckout={handleCheckout}
+          onClose={() => {
+            setCartSheetVisible(false);
+            _setCartModalVisible(false);
+          }}
+        />
       ) : null}
 
       {/* Customer Picker Modal */}

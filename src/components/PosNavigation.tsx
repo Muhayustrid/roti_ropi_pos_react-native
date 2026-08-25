@@ -29,7 +29,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'cashier', label: 'Kasir', iconName: 'offer' },
+  { id: 'cashier', label: 'Kasir', iconName: 'register' },
   { id: 'history', label: 'Riwayat', iconName: 'history' },
   { id: 'more', label: 'Lainnya', iconName: 'menu' },
 ];
@@ -155,8 +155,9 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.Border,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: Spacing.s2,
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 0,
   },
   bottomItem: {
     flex: 1,

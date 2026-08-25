@@ -24,7 +24,8 @@ export type PosIconName =
   | 'back'
   | 'warning'
   | 'offline'
-  | 'time';
+  | 'time'
+  | 'register';
 
 const ICON_MAP: Record<PosIconName, keyof typeof MaterialIcons.glyphMap> = {
   person: 'person',
@@ -48,6 +49,7 @@ const ICON_MAP: Record<PosIconName, keyof typeof MaterialIcons.glyphMap> = {
   warning: 'warning',
   offline: 'wifi-off',
   time: 'schedule',
+  register: 'point-of-sale',
 };
 
 export interface PosIconProps {
