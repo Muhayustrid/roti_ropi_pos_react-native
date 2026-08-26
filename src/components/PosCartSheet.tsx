@@ -1,5 +1,16 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Pressable, Dimensions, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Animated,
+  PanResponder,
+  Pressable,
+  useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import type { CartLine as CartLineType, Customer, Promo } from '../types';
 import { Colors, Radius, Typography, Sizes, Spacing } from '../theme/tokens';
 import { PosCard, SectionTitle, SpreadRow } from './PosCard';
@@ -10,9 +21,44 @@ import { CartLine } from '../features/cashier/CartLine';
 import { formatRupiah } from '../utils/money';
 import { calculateCart } from '../utils/cart';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SHEET_HEIGHT_COLLAPSED = 120;
-const SHEET_HEIGHT_EXPANDED = SCREEN_HEIGHT * 0.75;
+export const SHEET_HEIGHT_COLLAPSED = 120;
+export const SPRING_CONFIG = {
+  stiffness: 300,
+  damping: 30,
+  mass: 1,
+};
+
+export type SheetSnapState = 'collapsed' | 'expanded';
+export type SnapAction = 'collapsed' | 'expanded' | 'dismiss';
+
+export function resolveCartSheetSnap(
+  currentState: SheetSnapState,
+  gesture: { dy: number; vy?: number }
+): SnapAction {
+  const dy = gesture.dy;
+  const vy = gesture.vy ?? 0;
+
+  if (currentState === 'collapsed') {
+    // Swipe down past threshold from collapsed -> dismiss
+    if (dy > 60 || vy > 0.8) {
+      return 'dismiss';
+    }
+    // Swipe up past threshold from collapsed -> expand
+    if (dy < -50 || vy < -0.5) {
+      return 'expanded';
+    }
+    // Small gesture -> stay collapsed
+    return 'collapsed';
+  } else {
+    // currentState === 'expanded'
+    // Swipe down past threshold from expanded -> collapse
+    if (dy > 50 || vy > 0.5) {
+      return 'collapsed';
+    }
+    // Small gesture / swipe up -> stay expanded
+    return 'expanded';
+  }
+}
 
 export interface PosCartSheetProps {
   visible: boolean;
@@ -45,52 +91,75 @@ export function PosCartSheet({
   onClose,
   style,
 }: PosCartSheetProps) {
-  const sheetY = useMemo(() => new Animated.Value(SHEET_HEIGHT_COLLAPSED), []);
-  const [dragging, setDragging] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const expandedHeight = windowHeight * 0.75;
+
+  const [snapState, setSnapState] = useState<SheetSnapState>('collapsed');
+  const snapStateRef = useRef<SheetSnapState>('collapsed');
+  snapStateRef.current = snapState;
+
+  const heightAnim = useRef(new Animated.Value(SHEET_HEIGHT_COLLAPSED)).current;
+  const startDragHeight = useRef(SHEET_HEIGHT_COLLAPSED);
+
+  useEffect(() => {
+    if (visible && snapState === 'expanded') {
+      Animated.spring(heightAnim, {
+        toValue: expandedHeight,
+        useNativeDriver: false,
+        ...SPRING_CONFIG,
+      }).start();
+    }
+  }, [expandedHeight, visible, snapState, heightAnim]);
+
+  const animateToState = (nextState: SheetSnapState) => {
+    const targetHeight = nextState === 'expanded' ? expandedHeight : SHEET_HEIGHT_COLLAPSED;
+    setSnapState(nextState);
+    Animated.spring(heightAnim, {
+      toValue: targetHeight,
+      useNativeDriver: false,
+      ...SPRING_CONFIG,
+    }).start();
+  };
 
   const toggleExpand = () => {
-    const targetValue = dragging ? SHEET_HEIGHT_COLLAPSED : SHEET_HEIGHT_EXPANDED;
-    Animated.spring(sheetY, {
-      toValue: targetValue,
-      useNativeDriver: false,
-      bounciness: 0,
-      stiffness: 300,
-    }).start();
-    if (targetValue === SHEET_HEIGHT_COLLAPSED) setDragging(false);
+    const nextState: SheetSnapState = snapStateRef.current === 'expanded' ? 'collapsed' : 'expanded';
+    animateToState(nextState);
   };
 
-  const handleDragStart = () => {
-    sheetY.stopAnimation();
-  };
-
-  const handleDragMove = (_: unknown, gesture: { dy: number }) => {
-    let newY = SHEET_HEIGHT_COLLAPSED + gesture.dy;
-    newY = Math.min(Math.max(newY, SHEET_HEIGHT_COLLAPSED - 80), SHEET_HEIGHT_EXPANDED);
-    sheetY.setValue(newY);
-  };
-
-  const handleDragEnd = (_: unknown, gesture: { dy: number; vy: number }) => {
-    const shouldExpand = gesture.dy < -50 || gesture.dy > 50;
-    const targetValue = shouldExpand ? (gesture.dy < 0 ? SHEET_HEIGHT_EXPANDED : SHEET_HEIGHT_COLLAPSED) :
-                        dragging ? SHEET_HEIGHT_COLLAPSED : SHEET_HEIGHT_EXPANDED;
-    Animated.spring(sheetY, {
-      toValue: targetValue,
-      useNativeDriver: false,
-      velocity: gesture.vy * -1,
-      bounciness: 0,
-      stiffness: 300,
-    }).start(() => setDragging(!shouldExpand));
-  };
-
-  const panHandlers = useMemo(
-    () => ({
-      onStartShouldSetPanResponder: () => !dragging,
-      onMoveShouldSetPanResponder: (_: unknown, gesture: { dy: number }) => Math.abs(gesture.dy) > 10,
-      onPanResponderGrant: handleDragStart,
-      onPanResponderMove: handleDragMove,
-      onPanResponderRelease: handleDragEnd,
-    }),
-    [dragging]
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_: unknown, gesture) => Math.abs(gesture.dy) > 5,
+        onPanResponderGrant: () => {
+          heightAnim.stopAnimation();
+          startDragHeight.current =
+            snapStateRef.current === 'expanded' ? expandedHeight : SHEET_HEIGHT_COLLAPSED;
+        },
+        onPanResponderMove: (_: unknown, gesture) => {
+          // Drag up (negative dy) increases height; drag down (positive dy) decreases height
+          const newHeight = startDragHeight.current - gesture.dy;
+          const minH = SHEET_HEIGHT_COLLAPSED - 60;
+          const maxH = expandedHeight + 40;
+          const clampedHeight = Math.min(Math.max(newHeight, minH), maxH);
+          heightAnim.setValue(clampedHeight);
+        },
+        onPanResponderRelease: (_: unknown, gesture) => {
+          const action = resolveCartSheetSnap(snapStateRef.current, gesture);
+          if (action === 'dismiss') {
+            Animated.timing(heightAnim, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: false,
+            }).start(() => {
+              onClose();
+            });
+          } else {
+            animateToState(action);
+          }
+        },
+      }),
+    [expandedHeight, heightAnim, onClose]
   );
 
   const totals = useMemo(() => calculateCart(cart, promo, couponCode), [cart, promo, couponCode]);
@@ -99,157 +168,199 @@ export function PosCartSheet({
   if (!visible) return null;
 
   return (
-    <Pressable onPress={toggleExpand} {...panHandlers}>
-      <Animated.View style={[styles.sheetContainer, { height: sheetY }, style]}>
-        {/* Drag Handle */}
-        <Pressable onPress={onClose} style={styles.dragHandleWrapper}>
-          <Animated.View
-            style={[
-              styles.dragHandle,
-              {
-                transform: [
-                  {
-                    translateY: sheetY.interpolate({
-                      inputRange: [SHEET_HEIGHT_COLLAPSED, SHEET_HEIGHT_EXPANDED],
-                      outputRange: [0, SCREEN_HEIGHT / 2],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
+    <Animated.View style={[styles.sheetContainer, { height: heightAnim }, style]}>
+      {/* Drag & Header Zone */}
+      <View {...panResponder.panHandlers} style={styles.dragZone}>
+        <Pressable
+          onPress={toggleExpand}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={snapState === 'expanded' ? 'Kecilkan keranjang' : 'Buka keranjang'}
+          style={styles.dragHandleWrapper}
+        >
+          <View style={styles.dragHandle} />
         </Pressable>
-
-        {/* Cart Content */}
-        <View style={styles.contentArea}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Customer Selector Card */}
-            <PosCard style={styles.customerCard} onPress={onSelectCustomerClick}>
-              <View style={styles.customerRow}>
-                <View style={styles.customerAvatar}>
-                  <PosIcon name="person" size={20} color={Colors.BrandInk} />
-                </View>
-                <View style={styles.customerInfo}>
-                  <Text style={styles.customerName} numberOfLines={1}>{customer.name}</Text>
-                  <Text style={styles.customerPhone} numberOfLines={1}>
-                    {customer.detail || 'Pelanggan Umum'}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={onSelectCustomerClick}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Ubah pelanggan"
-                  style={({ pressed }) => [styles.changeTextBtn, pressed && styles.pressed]}
-                >
-                  <Text style={styles.changeActionText}>Ubah</Text>
-                </Pressable>
+        {snapState === 'collapsed' ? (
+          <Pressable
+            onPress={toggleExpand}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Keranjang belanja, ${totalItemCount} item, total ${formatRupiah(totals.total)}`}
+            style={styles.collapsedHeaderRow}
+          >
+            <View style={styles.collapsedHeaderLeft}>
+              <View style={styles.collapsedBadge}>
+                <PosIcon name="cart" size={16} color={Colors.BrandInk} />
+                <Text style={styles.collapsedBadgeText}>{totalItemCount} item</Text>
               </View>
-            </PosCard>
-
-            {/* Section: Item */}
-            <SectionTitle
-              title="Item"
-              trailing={totalItemCount > 0 ? <PosBadge label={`${totalItemCount} item`} variant="Neutral" /> : null}
-              style={styles.itemSectionTitle}
-            />
-
-            {/* Cart Items or Empty State */}
-            {cart.length === 0 ? (
-              <View style={styles.emptyCartCard}>
-                <PosIcon name="cart" size={32} color={Colors.Text2} />
-                <Text style={styles.emptyCartTitle}>Keranjang masih kosong</Text>
-                <Text style={styles.emptyCartBody}>Pilih produk di katalog untuk mulai transaksi.</Text>
-              </View>
-            ) : (
-              <View style={styles.cartListContainer}>
-                {cart.map((line) => (
-                  <CartLine
-                    key={line.product.id}
-                    productId={line.product.id}
-                    name={line.product.name}
-                    price={line.product.price}
-                    quantity={line.quantity}
-                    tone={line.product.tone}
-                    onIncrement={onIncrement}
-                    onDecrement={onDecrement}
-                    onRemove={onRemove}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* Offers Card */}
-            <PosCard style={styles.offerCard} onPress={onSelectOfferClick}>
-              <View style={styles.offerHeader}>
-                <View style={styles.offerTitleRow}>
-                  <PosIcon name="offer" size={18} color={Colors.BrandInk} />
-                  <Text style={styles.offerTitleText}>Penawaran</Text>
-                </View>
-                {(totals.promoDiscount > 0 || totals.couponDiscount > 0) ? (
-                  <PosBadge label="Hemat terbaik" variant="Success" />
-                ) : null}
-              </View>
-              <View style={styles.offerDivider} />
-              <View style={styles.offerRow}>
-                <View style={styles.offerCol}>
-                  <Text style={styles.offerSubLabel}>Promo</Text>
-                  <Text style={styles.offerValueText}>{promo.name}</Text>
-                </View>
-                <Pressable onPress={onSelectOfferClick} accessible={true} accessibilityRole="button" accessibilityLabel="Ubah promo" style={({ pressed }) => [styles.changeTextBtn, pressed && styles.pressed]}>
-                  <Text style={styles.changeActionText}>Ubah</Text>
-                </Pressable>
-              </View>
-              <View style={styles.offerRow}>
-                <View style={styles.offerCol}>
-                  <Text style={styles.offerSubLabel}>Kupon</Text>
-                  <Text style={styles.offerValueText}>
-                    {couponCode ? `${couponCode} · ${formatRupiah(totals.couponDiscount)} off` : 'Belum ada kupon'}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={onSelectOfferClick}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={couponCode ? 'Ubah kupon' : 'Tambah kupon'}
-                  style={({ pressed }) => [styles.changeTextBtn, pressed && styles.pressed]}
-                >
-                  <Text style={styles.changeActionText}>{couponCode ? 'Ubah' : 'Tambah'}</Text>
-                </Pressable>
-              </View>
-            </PosCard>
-
-            {/* Summary Card */}
-            <PosCard style={styles.summaryCard} backgroundColor={Colors.SurfaceAlt}>
-              <SpreadRow label="Subtotal" value={formatRupiah(totals.subtotal)} />
-              {totals.promoDiscount > 0 ? (
-                <SpreadRow label="Promosi" value={`−${formatRupiah(totals.promoDiscount)}`} valueColor={Colors.SuccessInk} />
-              ) : null}
-              {totals.couponDiscount > 0 ? (
-                <SpreadRow label="Kupon" value={`−${formatRupiah(totals.couponDiscount)}`} valueColor={Colors.SuccessInk} />
-              ) : null}
-              <SpreadRow label="Pajak (PB1 10%)" value={formatRupiah(totals.tax)} />
-              <View style={styles.summaryDivider} />
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>{formatRupiah(totals.total)}</Text>
-              </View>
-            </PosCard>
-          </ScrollView>
-
-          {/* Sticky Bottom Actions */}
-          <View style={styles.actionFooter}>
-            <PosButton
-              label="Lanjut ke Pembayaran"
-              variant="Primary"
-              onPress={onCheckout}
-              disabled={cart.length === 0}
-              fullWidth
-            />
+              <Text style={styles.collapsedTotalText}>{formatRupiah(totals.total)}</Text>
+            </View>
+            <Pressable
+              onPress={onClose}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Tutup keranjang"
+              hitSlop={8}
+              style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+            >
+              <PosIcon name="close" size={18} color={Colors.Text2} />
+            </Pressable>
+          </Pressable>
+        ) : (
+          <View style={styles.expandedHeaderRow}>
+            <Text style={styles.expandedTitle}>Keranjang Belanja</Text>
+            <Pressable
+              onPress={onClose}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Tutup keranjang"
+              hitSlop={8}
+              style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+            >
+              <PosIcon name="close" size={20} color={Colors.Text2} />
+            </Pressable>
           </View>
+        )}
+      </View>
+
+      {/* Cart Content Area */}
+      <View style={styles.contentArea}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Customer Selector Card */}
+          <PosCard style={styles.customerCard} onPress={onSelectCustomerClick}>
+            <View style={styles.customerRow}>
+              <View style={styles.customerAvatar}>
+                <PosIcon name="person" size={20} color={Colors.BrandInk} />
+              </View>
+              <View style={styles.customerInfo}>
+                <Text style={styles.customerName} numberOfLines={1}>{customer.name}</Text>
+                <Text style={styles.customerPhone} numberOfLines={1}>
+                  {customer.detail || 'Pelanggan Umum'}
+                </Text>
+              </View>
+              <Pressable
+                onPress={onSelectCustomerClick}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Ubah pelanggan"
+                style={({ pressed }) => [styles.changeTextBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.changeActionText}>Ubah</Text>
+              </Pressable>
+            </View>
+          </PosCard>
+
+          {/* Section: Item */}
+          <SectionTitle
+            title="Item"
+            trailing={totalItemCount > 0 ? <PosBadge label={`${totalItemCount} item`} variant="Neutral" /> : null}
+            style={styles.itemSectionTitle}
+          />
+
+          {/* Cart Items or Empty State */}
+          {cart.length === 0 ? (
+            <View style={styles.emptyCartCard}>
+              <PosIcon name="cart" size={32} color={Colors.Text2} />
+              <Text style={styles.emptyCartTitle}>Keranjang masih kosong</Text>
+              <Text style={styles.emptyCartBody}>Pilih produk di katalog untuk mulai transaksi.</Text>
+            </View>
+          ) : (
+            <View style={styles.cartListContainer}>
+              {cart.map((line) => (
+                <CartLine
+                  key={line.product.id}
+                  productId={line.product.id}
+                  name={line.product.name}
+                  price={line.product.price}
+                  quantity={line.quantity}
+                  tone={line.product.tone}
+                  onIncrement={onIncrement}
+                  onDecrement={onDecrement}
+                  onRemove={onRemove}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Offers Card */}
+          <PosCard style={styles.offerCard} onPress={onSelectOfferClick}>
+            <View style={styles.offerHeader}>
+              <View style={styles.offerTitleRow}>
+                <PosIcon name="offer" size={18} color={Colors.BrandInk} />
+                <Text style={styles.offerTitleText}>Penawaran</Text>
+              </View>
+              {(totals.promoDiscount > 0 || totals.couponDiscount > 0) ? (
+                <PosBadge label="Hemat terbaik" variant="Success" />
+              ) : null}
+            </View>
+            <View style={styles.offerDivider} />
+            <View style={styles.offerRow}>
+              <View style={styles.offerCol}>
+                <Text style={styles.offerSubLabel}>Promo</Text>
+                <Text style={styles.offerValueText}>{promo.name}</Text>
+              </View>
+              <Pressable
+                onPress={onSelectOfferClick}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Ubah promo"
+                style={({ pressed }) => [styles.changeTextBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.changeActionText}>Ubah</Text>
+              </Pressable>
+            </View>
+            <View style={styles.offerRow}>
+              <View style={styles.offerCol}>
+                <Text style={styles.offerSubLabel}>Kupon</Text>
+                <Text style={styles.offerValueText}>
+                  {couponCode ? `${couponCode} · ${formatRupiah(totals.couponDiscount)} off` : 'Belum ada kupon'}
+                </Text>
+              </View>
+              <Pressable
+                onPress={onSelectOfferClick}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={couponCode ? 'Ubah kupon' : 'Tambah kupon'}
+                style={({ pressed }) => [styles.changeTextBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.changeActionText}>{couponCode ? 'Ubah' : 'Tambah'}</Text>
+              </Pressable>
+            </View>
+          </PosCard>
+
+          {/* Summary Card */}
+          <PosCard style={styles.summaryCard} backgroundColor={Colors.SurfaceAlt}>
+            <SpreadRow label="Subtotal" value={formatRupiah(totals.subtotal)} />
+            {totals.promoDiscount > 0 ? (
+              <SpreadRow label="Promosi" value={`−${formatRupiah(totals.promoDiscount)}`} valueColor={Colors.SuccessInk} />
+            ) : null}
+            {totals.couponDiscount > 0 ? (
+              <SpreadRow label="Kupon" value={`−${formatRupiah(totals.couponDiscount)}`} valueColor={Colors.SuccessInk} />
+            ) : null}
+            <SpreadRow label="Pajak (PB1 10%)" value={formatRupiah(totals.tax)} />
+            <View style={styles.summaryDivider} />
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>{formatRupiah(totals.total)}</Text>
+            </View>
+          </PosCard>
+        </ScrollView>
+
+        {/* Sticky Bottom Actions */}
+        <View style={styles.actionFooter}>
+          <PosButton
+            label="Lanjut ke Pembayaran"
+            variant="Primary"
+            onPress={onCheckout}
+            disabled={cart.length === 0}
+            fullWidth
+          />
         </View>
-      </Animated.View>
-    </Pressable>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -267,10 +378,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
+    overflow: 'hidden',
+  },
+  dragZone: {
+    backgroundColor: Colors.Surface,
+    paddingTop: Spacing.s2,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.Border,
   },
   dragHandleWrapper: {
     alignItems: 'center',
-    paddingTop: Spacing.s2,
+    paddingVertical: Spacing.s1,
   },
   dragHandle: {
     width: 40,
@@ -278,8 +396,57 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: Colors.Border,
   },
+  collapsedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.s4,
+    paddingBottom: Spacing.s2,
+  },
+  collapsedHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.s2,
+  },
+  collapsedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.BrandSoft,
+    paddingHorizontal: Spacing.s2,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  collapsedBadgeText: {
+    ...Typography.SmSemi,
+    color: Colors.BrandInk,
+  },
+  collapsedTotalText: {
+    ...Typography.MdBold,
+    color: Colors.Text,
+  },
+  expandedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.s4,
+    paddingBottom: Spacing.s2,
+  },
+  expandedTitle: {
+    ...Typography.MdBold,
+    color: Colors.Text,
+  },
+  closeButton: {
+    padding: Spacing.s1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   contentArea: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  scrollContent: {
     padding: Spacing.s4,
     paddingBottom: Spacing.s6,
   },
