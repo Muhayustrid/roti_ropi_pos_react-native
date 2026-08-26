@@ -1,4 +1,6 @@
 import React from 'react';
+import fs from 'node:fs';
+import path from 'node:path';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { OpeningScreen } from '../features/opening/OpeningScreen';
 import { CheckingScreen } from '../features/opening/CheckingScreen';
@@ -12,6 +14,25 @@ describe('Task 3: Auth, Opening, Checking Screens & Navigation Flow', () => {
       expect(LoginScreen).toBeDefined();
       const element = React.createElement(LoginScreen, { onLoginSuccess: jest.fn() });
       expect(element).toBeDefined();
+    });
+
+    test('LoginScreen exposes an editable ERPNext server and rejects an empty value', () => {
+      const source = fs.readFileSync(
+        path.join(process.cwd(), 'src/features/auth/LoginScreen.tsx'),
+        'utf8'
+      );
+
+      expect(source).toContain("useState('oauth-staging.rotiropi.web.id')");
+      expect(source).toContain('<TextInput');
+      expect(source).toContain('value={serverHost}');
+      expect(source).toContain('onChangeText={setServerHost}');
+      expect(source).toContain('keyboardType="url"');
+      expect(source).toContain('autoCapitalize="none"');
+      expect(source).toContain('autoCorrect={false}');
+      expect(source).toContain('disabled={!serverHost.trim()}');
+      expect(source).not.toContain(
+        '<Text style={styles.serverHost}>oauth-staging.rotiropi.web.id</Text>'
+      );
     });
 
     test('OpeningScreen is defined and exports correctly', () => {
@@ -56,9 +77,13 @@ describe('Task 3: Auth, Opening, Checking Screens & Navigation Flow', () => {
     });
 
     test('app/(pos)/_layout.tsx does NOT duplicate nested PosProvider', () => {
-      const element = PosShellLayout();
-      expect(element).toBeDefined();
-      expect(element.type?.name).not.toBe('PosProvider');
+      const source = fs.readFileSync(
+        path.join(process.cwd(), 'app/(pos)/_layout.tsx'),
+        'utf8'
+      );
+
+      expect(PosShellLayout).toBeDefined();
+      expect(source).not.toContain('<PosProvider');
     });
   });
 

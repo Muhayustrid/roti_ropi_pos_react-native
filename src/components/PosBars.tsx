@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -55,44 +55,6 @@ export function PosTopBar({
       <View style={styles.sideSlot}>
         {trailing ? <View style={styles.trailingContainer}>{trailing}</View> : null}
       </View>
-    </View>
-  );
-}
-
-export interface PosBrandBarProps {
-  title?: string;
-  showTime?: boolean;
-  style?: StyleProp<ViewStyle>;
-}
-
-export function PosBrandBar({
-  title = 'Roti Ropi POS',
-  showTime = true,
-  style,
-}: PosBrandBarProps) {
-  const [timeStr, setTimeStr] = useState('');
-
-  useEffect(() => {
-    if (!showTime) return;
-    const update = () => {
-      const now = new Date();
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      setTimeStr(`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`);
-    };
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, [showTime]);
-
-  return (
-    <View style={[styles.brandBar, style]} accessible={true} accessibilityRole="toolbar">
-      <View style={styles.brandTitleRow}>
-        <View style={styles.storeIconBox}>
-          <PosIcon name="store" size={20} color={Colors.BrandInk} />
-        </View>
-        <Text style={styles.brandTitleText}>{title}</Text>
-      </View>
-      {showTime ? <Text style={styles.brandClockText}>{timeStr}</Text> : null}
     </View>
   );
 }
@@ -171,34 +133,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
-  },
-  brandBar: {
-    height: Sizes.appBar,
-    backgroundColor: Colors.Surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.Border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.s4,
-  },
-  brandTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  storeIconBox: {
-    marginRight: Spacing.s2,
-  },
-  storeIconText: {
-    fontSize: 18,
-  },
-  brandTitleText: {
-    ...Typography.LgBold,
-    color: Colors.Text,
-  },
-  brandClockText: {
-    ...Typography.SmMedium,
-    color: Colors.Text2,
   },
   actionFooter: {
     backgroundColor: Colors.Surface,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { Alert, View, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, Typography, Spacing } from '../../src/theme/tokens';
 import { PosTopBar } from '../../src/components/PosBars';
@@ -15,15 +15,21 @@ export default function TransactionDetailRoute() {
 
   const isDraft = transaction?.status === 'Draf';
   const title = isDraft ? 'Pesanan Draf' : 'Detail Transaksi';
+  const handlePrint = () => {
+    Alert.alert('Cetak Struk', 'Struk berhasil dikirim ke printer.');
+  };
 
   return (
     <View style={styles.container}>
-      <PosTopBar title={title} onBack={() => router.back()} backIsClose />
+      <PosTopBar title={title} onBack={() => router.back()} />
       {transaction ? (
         <TransactionDetail
           transaction={transaction}
-          onRefund={() => router.back()}
+          onRefund={() =>
+            router.push(`/refund/${encodeURIComponent(transaction.id)}`)
+          }
           onResumeDraft={() => router.replace('/(pos)')}
+          onPrint={handlePrint}
         />
       ) : (
         <View style={styles.notFound}>

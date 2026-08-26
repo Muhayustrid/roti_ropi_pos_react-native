@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Switch,
+  Pressable,
   useWindowDimensions,
   type StyleProp,
   type ViewStyle,
@@ -22,10 +23,17 @@ import { sampleSession } from '../../mock/data';
 
 export interface MoreScreenProps {
   onCloseShift?: () => void;
+  onOpenPrinter?: () => void;
+  onOpenReport?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-export function MoreScreen({ onCloseShift, style }: MoreScreenProps) {
+export function MoreScreen({
+  onCloseShift,
+  onOpenPrinter,
+  onOpenReport,
+  style,
+}: MoreScreenProps) {
   const { width, height } = useWindowDimensions();
   const windowClass = getWindowClass(width, height);
   const state = usePosState();
@@ -192,7 +200,43 @@ export function MoreScreen({ onCloseShift, style }: MoreScreenProps) {
             <PosCard style={styles.card}>
               <SectionTitle title="Umum" />
               <SpreadRow label="Bahasa" value="Bahasa Indonesia" />
-              <SpreadRow label="Printer Struk" value="Tidak Terhubung" valueColor={Colors.Text3} />
+              <Pressable
+                onPress={onOpenReport}
+                accessibilityRole="button"
+                accessibilityLabel="Buka laporan penjualan"
+                style={({ pressed }) => [
+                  styles.settingsLink,
+                  pressed && styles.settingsLinkPressed,
+                ]}
+              >
+                <View>
+                  <Text style={styles.settingsLabel}>Laporan</Text>
+                  <Text style={styles.reportValue}>
+                    Ringkasan penjualan dan closing
+                  </Text>
+                </View>
+                <PosIcon
+                  name="back"
+                  size={20}
+                  color={Colors.Text2}
+                  style={styles.chevron}
+                />
+              </Pressable>
+              <Pressable
+                onPress={onOpenPrinter}
+                accessibilityRole="button"
+                accessibilityLabel="Buka pengaturan printer"
+                style={({ pressed }) => [
+                  styles.settingsLink,
+                  pressed && styles.settingsLinkPressed,
+                ]}
+              >
+                <View>
+                  <Text style={styles.settingsLabel}>Printer Struk</Text>
+                  <Text style={styles.settingsValue}>Terhubung (Mock)</Text>
+                </View>
+                <PosIcon name="back" size={20} color={Colors.Text2} style={styles.chevron} />
+              </Pressable>
               <SpreadRow label="Versi Aplikasi" value="v1.2.0 (Staging)" valueColor={Colors.Text3} />
               <SpreadRow label="Sinkronisasi" value="Otomatis" valueColor={Colors.SuccessInk} />
             </PosCard>
@@ -291,5 +335,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.Border,
     marginVertical: Spacing.s1,
+  },
+  settingsLink: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingsLinkPressed: {
+    opacity: 0.75,
+  },
+  settingsLabel: {
+    ...Typography.Sm,
+    color: Colors.Text2,
+  },
+  settingsValue: {
+    ...Typography.SmSemi,
+    color: Colors.SuccessInk,
+    marginTop: 2,
+  },
+  reportValue: {
+    ...Typography.SmSemi,
+    color: Colors.BrandInk,
+    marginTop: 2,
+  },
+  chevron: {
+    transform: [{ rotate: '180deg' }],
   },
 });

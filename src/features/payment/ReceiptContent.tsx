@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,13 @@ import { Colors, Radius, Typography, Spacing } from '../../theme/tokens';
 import { PosCard, SpreadRow } from '../../components/PosCard';
 import { PosButton } from '../../components/PosButton';
 import { formatRupiah } from '../../utils/money';
-import type { CartLine, CartTotals, Customer } from '../../types';
+import type {
+  CartLine,
+  CartTotals,
+  Customer,
+  PaperWidth,
+  PrintCopies,
+} from '../../types';
 
 export interface ReceiptContentProps {
   transactionId?: string;
@@ -25,6 +31,9 @@ export interface ReceiptContentProps {
   paymentMethod: string;
   cashReceived?: number;
   change?: number;
+  paperWidth?: PaperWidth;
+  copies?: PrintCopies;
+  autoPrint?: boolean;
   onPrint?: () => void;
   onNewTransaction?: () => void;
   style?: StyleProp<ViewStyle>;
@@ -42,22 +51,45 @@ export function ReceiptContent({
   paymentMethod,
   cashReceived,
   change = 0,
+  paperWidth = '80 mm',
+  copies = 1,
+  autoPrint = false,
   onPrint,
   onNewTransaction,
   style,
 }: ReceiptContentProps) {
   const [printStatus, setPrintStatus] = useState<string | null>(null);
+  const hasAutoPrinted = useRef(false);
+  const printTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
+    if (printTimer.current) clearTimeout(printTimer.current);
+    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
     onPrint?.();
     setPrintStatus('Mencetak struk…');
-    setTimeout(() => {
-      setPrintStatus('Struk berhasil dicetak');
-      setTimeout(() => {
+    printTimer.current = setTimeout(() => {
+      setPrintStatus(`Struk berhasil dicetak (${copies}x, ${paperWidth})`);
+      printTimer.current = null;
+      feedbackTimer.current = setTimeout(() => {
         setPrintStatus(null);
+        feedbackTimer.current = null;
       }, 2500);
     }, 1200);
-  };
+  }, [copies, onPrint, paperWidth]);
+
+  useEffect(() => {
+    if (!autoPrint || hasAutoPrinted.current) return;
+    hasAutoPrinted.current = true;
+    handlePrint();
+  }, [autoPrint, handlePrint]);
+
+  useEffect(() => {
+    return () => {
+      if (printTimer.current) clearTimeout(printTimer.current);
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    };
+  }, []);
 
   const isCash = paymentMethod.toLowerCase().includes('tunai') || paymentMethod.toLowerCase().includes('cash');
 

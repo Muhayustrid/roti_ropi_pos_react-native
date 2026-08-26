@@ -32,7 +32,9 @@ export function TransactionDetail({
   style,
 }: TransactionDetailProps) {
   const isSuccess = transaction.status === 'Berhasil';
-  const isRefunded = transaction.status === 'Dikembalikan';
+  const isPartialRefund = transaction.status === 'Dikembalikan Sebagian';
+  const isRefunded =
+    transaction.status === 'Dikembalikan' || isPartialRefund;
   const isDraft = transaction.status === 'Draf';
 
   return (
@@ -88,11 +90,21 @@ export function TransactionDetail({
             />
             <SpreadRow
               label="Total Dikembalikan"
-              value={formatRupiah(transaction.total)}
+              value={formatRupiah(transaction.refundedTotal ?? transaction.total)}
               valueColor={Colors.DangerInk}
               boldValue
               style={styles.detailRow}
             />
+            {transaction.refundedLines?.map((line, index) =>
+              line.quantity > 0 ? (
+                <SpreadRow
+                  key={`${line.productName}-${index}`}
+                  label={`${line.quantity} × ${line.productName}`}
+                  value={formatRupiah(line.quantity * line.price)}
+                  style={styles.detailRow}
+                />
+              ) : null
+            )}
           </PosCard>
         ) : null}
 
@@ -115,7 +127,7 @@ export function TransactionDetail({
         <PosCard style={styles.itemsCard}>
           <SectionTitle
             title={
-              isRefunded
+              transaction.status === 'Dikembalikan'
                 ? 'Item Dikembalikan'
                 : isDraft
                 ? 'Ringkasan Pesanan'
@@ -153,8 +165,8 @@ export function TransactionDetail({
             />
             <View style={styles.dividerSolid} />
             <SpreadRow
-              label={isRefunded ? 'Total Dikembalikan' : 'Total'}
-              value={formatRupiah(transaction.total)}
+              label={transaction.status === 'Dikembalikan' ? 'Total Dikembalikan' : 'Total'}
+              value={formatRupiah(transaction.refundedTotal ?? transaction.total)}
               boldValue
               valueColor={isRefunded ? Colors.DangerInk : Colors.BrandInk}
             />
@@ -163,7 +175,7 @@ export function TransactionDetail({
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
-          {isSuccess && onRefund ? (
+          {(isSuccess || isPartialRefund) && onRefund ? (
             <PosButton
               label="Mulai Pengembalian"
               variant="Outline"
@@ -183,7 +195,7 @@ export function TransactionDetail({
             />
           ) : null}
 
-          {isSuccess && onPrint ? (
+          {onPrint ? (
             <PosButton
               label="Cetak Struk"
               variant="Outline"
@@ -219,6 +231,7 @@ const styles = StyleSheet.create({
     ...Typography.Xl,
   },
   statusBadge: {
+    alignSelf: 'center',
     marginBottom: Spacing.s2,
   },
   trxId: {

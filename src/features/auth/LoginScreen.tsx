@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { Colors, Typography, Spacing, Radius } from '../../theme/tokens';
 import { PosCard, ToneIcon } from '../../components/PosCard';
 import { PosButton } from '../../components/PosButton';
@@ -10,6 +10,8 @@ export interface LoginScreenProps {
 }
 
 export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
+  const [serverHost, setServerHost] = useState('oauth-staging.rotiropi.web.id');
+
   return (
     <ScrollView
       contentContainerStyle={styles.scrollContent}
@@ -35,7 +37,16 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <Text style={styles.serverLabel}>Server ERPNext</Text>
               <PosIcon name="server" size={16} color={Colors.BrandInk} />
             </View>
-            <Text style={styles.serverHost}>oauth-staging.rotiropi.web.id</Text>
+            <TextInput
+              value={serverHost}
+              onChangeText={setServerHost}
+              keyboardType="url"
+              autoCapitalize="none"
+              autoCorrect={false}
+              selectTextOnFocus
+              accessibilityLabel="Server ERPNext"
+              style={styles.serverHost}
+            />
           </View>
 
           {/* Note 1 */}
@@ -48,6 +59,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             label="Lanjut dengan ERPNext"
             variant="Primary"
             fullWidth
+            disabled={!serverHost.trim()}
             onPress={() => onLoginSuccess?.()}
             style={styles.loginButton}
           />

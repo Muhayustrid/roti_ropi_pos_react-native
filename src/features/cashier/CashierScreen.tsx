@@ -16,9 +16,7 @@ import { Colors, Radius, Typography, Sizes, Spacing } from '../../theme/tokens';
 import { getWindowClass } from '../../utils/layout';
 import { formatRupiah } from '../../utils/money';
 import { usePosState, usePosDerived, usePosActions } from '../../state/PosContext';
-import { PosBrandBar } from '../../components/PosBars';
 import { PosSearchField } from '../../components/PosField';
-import { PosNavigation, type PosNavTab } from '../../components/PosNavigation';
 import { PosCartSheet } from '../../components/PosCartSheet';
 import { ProductCard } from './ProductCard';
 import { CartContent } from './CartContent';
@@ -27,11 +25,11 @@ import { OfferPicker } from './OfferPicker';
 import { PosIcon } from '../../components/PosIcon';
 
 export interface CashierScreenProps {
-  onNavigateTab?: (tab: PosNavTab) => void;
+  onNavigateTab?: (tab: 'cashier' | 'history' | 'more') => void;
   onCheckout?: () => void;
 }
 
-export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps) {
+export function CashierScreen({ onCheckout }: CashierScreenProps) {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const windowClass = getWindowClass(width, height);
@@ -45,19 +43,6 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
   const [cartSheetVisible, setCartSheetVisible] = useState(false);
   const [customerModalVisible, setCustomerModalVisible] = useState(false);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
-
-  const handleSelectTab = useCallback(
-    (tab: PosNavTab) => {
-      if (onNavigateTab) {
-        onNavigateTab(tab);
-      } else {
-        if (tab === 'cashier') router.replace('/(pos)');
-        else if (tab === 'history') router.replace('/(pos)/history');
-        else if (tab === 'more') router.replace('/(pos)/more');
-      }
-    },
-    [onNavigateTab, router]
-  );
 
   const handleCheckout = useCallback(() => {
     setCartSheetVisible(false);
@@ -147,20 +132,8 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
   return (
     <View style={styles.rootContainer}>
       <View style={styles.mainLayoutRow}>
-        {/* Left Side Rail (Tablets & Short Landscape) */}
-        {windowClass.hasSideRail ? (
-          <PosNavigation
-            activeTab="cashier"
-            onSelectTab={handleSelectTab}
-            width={width}
-            height={height}
-          />
-        ) : null}
-
-        {/* Center: Catalog & Brand Bar */}
+        {/* Center: Catalog */}
         <View style={styles.centerContainer}>
-          <PosBrandBar title="Roti Ropi POS" />
-
           {/* Search Bar */}
           <View style={styles.searchBarContainer}>
             <PosSearchField
@@ -285,16 +258,6 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
           </View>
         ) : null}
       </View>
-
-      {/* Bottom Navigation Bar on Compact Screens */}
-      {windowClass.isCompact ? (
-        <PosNavigation
-          activeTab="cashier"
-          onSelectTab={handleSelectTab}
-          width={width}
-          height={height}
-        />
-      ) : null}
 
       {/* Compact / Short Landscape Interactive Cart Bottom Sheet */}
       {!windowClass.hasSidePane && cartSheetVisible ? (

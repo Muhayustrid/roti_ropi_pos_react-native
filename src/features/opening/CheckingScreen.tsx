@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Typography, Spacing, Radius } from '../../theme/tokens';
 import { PosCard } from '../../components/PosCard';
 import { PosButton } from '../../components/PosButton';
+import { PosLoadingIndicator } from '../../components/PosLoadingIndicator';
 
 export interface CheckingScreenProps {
-  type?: 'opening' | 'payment';
+  type?: 'opening' | 'payment' | 'refund';
   referenceId?: string;
   durationMs?: number;
   onComplete?: () => void;
@@ -34,11 +35,22 @@ export function CheckingScreen({
   }, [durationMs, onComplete]);
 
   const isOpening = type === 'opening';
-  const title = isOpening ? 'Memeriksa status shift' : 'Memeriksa hasil pembayaran…';
+  const isRefund = type === 'refund';
+  const title = isOpening
+    ? 'Memeriksa status shift'
+    : isRefund
+    ? 'Memproses pengembalian…'
+    : 'Memeriksa hasil pembayaran…';
   const body = isOpening
     ? 'Permintaan pembukaan sudah dikirim. Hasilnya sedang diverifikasi.'
+    : isRefund
+    ? 'Tunggu sebentar, pengembalian sedang diproses. Jangan tutup aplikasi.'
     : 'Tunggu sebentar, transaksi sedang diverifikasi. Jangan tutup aplikasi.';
-  const statusBadge = isOpening ? 'Memulai shift…' : `Transaksi ${referenceId}`;
+  const statusBadge = isOpening
+    ? 'Memulai shift…'
+    : isRefund
+    ? `Pengembalian ${referenceId}`
+    : `Transaksi ${referenceId}`;
 
   const handleCancel = () => {
     if (timerRef.current) {
@@ -53,7 +65,7 @@ export function CheckingScreen({
         <PosCard style={styles.card}>
           {/* Spinner */}
           <View style={styles.spinnerContainer}>
-            <ActivityIndicator size="large" color={Colors.Brand} />
+            <PosLoadingIndicator accessibilityLabel={title} />
           </View>
 
           {/* Title and Body */}

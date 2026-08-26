@@ -39,6 +39,57 @@ describe('Task 6: History, More/Session & Shift Closing Component Exports & Redu
       expect(draftEl).toBeDefined();
     });
 
+    test('Transaction detail centers status and provides back and print actions for every status', () => {
+      const detailSource = fs.readFileSync(
+        path.join(process.cwd(), 'src/features/history/TransactionDetail.tsx'),
+        'utf8'
+      );
+      const routeSource = fs.readFileSync(
+        path.join(process.cwd(), 'app/transaction/[id].tsx'),
+        'utf8'
+      );
+
+      expect(detailSource).toContain("alignSelf: 'center'");
+      expect(detailSource).toContain('{onPrint ? (');
+      expect(detailSource).not.toContain('{isSuccess && onPrint ? (');
+      expect(routeSource).toContain('onPrint={handlePrint}');
+      expect(routeSource).not.toContain('backIsClose');
+    });
+
+    test('History and detail support partial refunds and remaining refund action', () => {
+      const historySource = fs.readFileSync(
+        path.join(process.cwd(), 'src/features/history/HistoryScreen.tsx'),
+        'utf8'
+      );
+      const detailSource = fs.readFileSync(
+        path.join(process.cwd(), 'src/features/history/TransactionDetail.tsx'),
+        'utf8'
+      );
+      const partialTransaction = {
+        ...sampleTransactions[0],
+        status: 'Dikembalikan Sebagian' as const,
+        refundReason: 'Salah pesanan',
+        refundMethod: 'Pengembalian QRIS',
+        refundedLines: [{ productName: 'Roti Manis', quantity: 1, price: 12000 }],
+        refundedSubtotal: 12000,
+        refundedTax: 1200,
+        refundedTotal: 13200,
+      };
+
+      expect(
+        React.createElement(TransactionDetail, {
+          transaction: partialTransaction,
+          onRefund: jest.fn(),
+          onPrint: jest.fn(),
+        })
+      ).toBeDefined();
+      expect(historySource).toContain("item.status === 'Dikembalikan Sebagian'");
+      expect(detailSource).toContain(
+        "transaction.status === 'Dikembalikan Sebagian'"
+      );
+      expect(detailSource).toContain('refundedTotal');
+    });
+
     test('HistoryScreen is defined and instantiates with navigation callbacks', () => {
       expect(HistoryScreen).toBeDefined();
       const element = React.createElement(HistoryScreen, {
@@ -79,6 +130,17 @@ describe('Task 6: History, More/Session & Shift Closing Component Exports & Redu
         onFinish: jest.fn(),
       });
       expect(element).toBeDefined();
+    });
+
+    test('ShiftClosedScreen centers the sent status badge', () => {
+      const source = fs.readFileSync(
+        path.join(process.cwd(), 'src/features/more/ShiftClosedScreen.tsx'),
+        'utf8'
+      );
+      const badgeStyle = source.match(/badge:\s*\{([\s\S]*?)\},/);
+
+      expect(badgeStyle).toBeTruthy();
+      expect(badgeStyle?.[1]).toContain("alignSelf: 'center'");
     });
   });
 

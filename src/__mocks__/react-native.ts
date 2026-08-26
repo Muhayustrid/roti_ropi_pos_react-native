@@ -15,6 +15,15 @@ export const TextInput = mockComponent('TextInput');
 export const Modal = mockComponent('Modal');
 export const ActivityIndicator = mockComponent('ActivityIndicator');
 export const ScrollView = mockComponent('ScrollView');
+export const AccessibilityInfo = {
+  isReduceMotionEnabled: () => Promise.resolve(false),
+  addEventListener: () => ({ remove: () => {} }),
+};
+export const Easing = {
+  linear: (value: number) => value,
+  ease: (value: number) => value,
+  inOut: (easing: (value: number) => number) => easing,
+};
 export const FlatList = mockComponent('FlatList');
 
 export const BackHandler = {
@@ -25,10 +34,15 @@ export const Animated = {
   Value: class {
     stopAnimation() {}
     setValue() {}
+    interpolate() {
+      return 0;
+    }
   },
   View: mockComponent('Animated.View'),
   spring: () => ({ start: (callback?: () => void) => callback?.() }),
-  timing: () => ({ start: (callback?: () => void) => callback?.() }),
+  timing: () => ({ start: (callback?: () => void) => callback?.(), stop: () => {} }),
+  parallel: () => ({ start: (callback?: () => void) => callback?.(), stop: () => {} }),
+  loop: () => ({ start: (callback?: () => void) => callback?.(), stop: () => {} }),
 };
 
 export const PanResponder = {

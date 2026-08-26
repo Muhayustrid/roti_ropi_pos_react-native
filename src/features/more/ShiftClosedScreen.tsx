@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.s2,
   },
   badge: {
+    alignSelf: 'center',
     marginBottom: Spacing.s2,
   },
   twoUpRow: {

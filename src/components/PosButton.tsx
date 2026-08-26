@@ -3,13 +3,13 @@ import {
   Pressable,
   Text,
   StyleSheet,
-  ActivityIndicator,
   View,
   type StyleProp,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
 import { Colors, Radius, Typography, Sizes, Spacing } from '../theme/tokens';
+import { PosLoadingIndicator } from './PosLoadingIndicator';
 
 export type PosButtonStyle = 'Primary' | 'Tonal' | 'Outline' | 'Danger';
 
@@ -75,9 +75,10 @@ export const PosButton = React.memo(function PosButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator
+        <PosLoadingIndicator
           size="small"
           color={variant === 'Primary' ? Colors.OnFill : Colors.BrandInk}
+          accessibilityLabel={`${label} sedang diproses`}
         />
       ) : (
         <View style={styles.contentRow}>

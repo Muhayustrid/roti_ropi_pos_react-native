@@ -16,6 +16,7 @@ import { PosIcon } from '../../components/PosIcon';
 import { getWindowClass } from '../../utils/layout';
 import { formatRupiah } from '../../utils/money';
 import { usePosState, usePosDerived, usePosActions } from '../../state/PosContext';
+import { useRouter } from 'expo-router';
 import { TransactionDetail } from './TransactionDetail';
 import type { HistoryFilterType, Transaction } from '../../types';
 
@@ -32,6 +33,7 @@ const FILTER_TABS: { key: HistoryFilterType; label: string }[] = [
 ];
 
 export function HistoryScreen({ onSelectTransaction, style }: HistoryScreenProps) {
+  const router = useRouter();
   const { width, height } = useWindowDimensions();
   const windowClass = getWindowClass(width, height);
   const state = usePosState();
@@ -46,7 +48,9 @@ export function HistoryScreen({ onSelectTransaction, style }: HistoryScreenProps
   const renderItem = ({ item }: { item: Transaction }) => {
     const isSelected = item.id === state.selectedTransactionId;
     const isSuccess = item.status === 'Berhasil';
-    const isRefunded = item.status === 'Dikembalikan';
+    const isRefunded =
+      item.status === 'Dikembalikan' ||
+      item.status === 'Dikembalikan Sebagian';
     const isDraft = item.status === 'Draf';
 
     return (
@@ -156,7 +160,14 @@ export function HistoryScreen({ onSelectTransaction, style }: HistoryScreenProps
         {windowClass.hasSidePane ? (
           <View style={styles.detailPane}>
             {derived.selectedTransaction ? (
-              <TransactionDetail transaction={derived.selectedTransaction} />
+              <TransactionDetail
+                transaction={derived.selectedTransaction}
+                onRefund={() =>
+                  derived.selectedTransaction &&
+                  router.push(`/transaction/${encodeURIComponent(derived.selectedTransaction.id)}`)
+                }
+                onPrint={() => router.back()}
+              />
             ) : (
               <View style={styles.emptyDetail}>
                 <Text style={styles.emptyDetailText}>Pilih transaksi untuk melihat detail</Text>

@@ -3,7 +3,7 @@ import { PosCard, PosPaddedCard, SectionTitle, LabelledValue, SpreadRow, ToneIco
 import { PosBadge } from '../components/PosBadge';
 import { PosBanner } from '../components/PosBanner';
 import { PosField, PosSearchField, MoneyField } from '../components/PosField';
-import { PosTopBar, PosBrandBar, PosActionFooter } from '../components/PosBars';
+import { PosTopBar, PosActionFooter } from '../components/PosBars';
 import { ResponsiveModal } from '../components/ResponsiveModal';
 import { StateView } from '../components/StateView';
 import { PosIcon } from '../components/PosIcon';
@@ -69,10 +69,15 @@ describe('Canonical UI Components API & exports', () => {
     expect(MoneyField).toBeDefined();
   });
 
-  test('PosBars (TopBar, BrandBar, ActionFooter) are defined', () => {
+  test('PosBars exports one canonical TopBar and ActionFooter', () => {
     expect(PosTopBar).toBeDefined();
-    expect(PosBrandBar).toBeDefined();
     expect(PosActionFooter).toBeDefined();
+
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PosBars.tsx'),
+      'utf8'
+    );
+    expect(source).not.toContain('export function PosBrandBar');
   });
 
   test('PosActionFooter adapts with explicit width or measured useWindowDimensions fallback', () => {
@@ -88,5 +93,29 @@ describe('Canonical UI Components API & exports', () => {
   test('ResponsiveModal and StateView are defined', () => {
     expect(ResponsiveModal).toBeDefined();
     expect(StateView).toBeDefined();
+  });
+
+  test('loading UI uses one animated, reduced-motion-aware indicator', () => {
+    const indicatorSource = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PosLoadingIndicator.tsx'),
+      'utf8'
+    );
+    const consumerSources = [
+      'src/features/opening/CheckingScreen.tsx',
+      'src/components/StateView.tsx',
+      'src/components/PosButton.tsx',
+    ].map((file) => fs.readFileSync(path.join(process.cwd(), file), 'utf8'));
+
+    expect(indicatorSource).toContain('Animated.loop');
+    expect(indicatorSource).toContain("outputRange: ['0deg', '360deg']");
+    expect(indicatorSource).toContain('useNativeDriver: true');
+    expect(indicatorSource).toContain('isInteraction: false');
+    expect(indicatorSource).toContain('AccessibilityInfo.isReduceMotionEnabled()');
+    expect(consumerSources.every((source) => source.includes('<PosLoadingIndicator'))).toBe(
+      true
+    );
+    expect(consumerSources.every((source) => !source.includes('<ActivityIndicator'))).toBe(
+      true
+    );
   });
 });

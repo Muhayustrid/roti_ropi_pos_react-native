@@ -17,3 +17,5 @@ export const useRouter = () => ({
   replace: jest.fn(),
   back: jest.fn(),
 });
+
+export const usePathname = () => '/';

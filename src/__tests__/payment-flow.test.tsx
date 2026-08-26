@@ -58,7 +58,7 @@ describe('payment flow state', () => {
 
 describe('payment presentation', () => {
   test.each([
-    [411, 923, 'sheet', 'collapsed'],
+    [411, 923, 'sheet', 'expanded'],
     [923, 411, 'sheet', 'expanded'],
     [800, 600, 'fullscreen', 'expanded'],
     [1280, 800, 'fullscreen', 'expanded'],
@@ -79,6 +79,18 @@ describe('payment presentation', () => {
     expect(source).toContain('<View {...panResponder.panHandlers}');
     expect(source).not.toMatch(/<Animated\.View[^>]*panResponder\.panHandlers/);
     expect(source).toContain('useNativeDriver: false');
+  });
+
+  test('payment shell supports accessible labels for sibling flows', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PaymentFlowShell.tsx'),
+      'utf8'
+    );
+
+    expect(source).toContain("flowLabel = 'pembayaran'");
+    expect(source).toContain('`Tutup ${flowLabel}`');
+    expect(source).toContain('`Kecilkan ${flowLabel}`');
+    expect(source).toContain('`Perbesar ${flowLabel}`');
   });
 
   test('payment sheet resets its snap when window dimensions change', () => {
@@ -111,6 +123,8 @@ test('complete payment flow is composed under one parent', () => {
   }
   expect(source).toContain("type: 'REPLACE_STEP', step: 'success'");
   expect(source).toContain('showHeader={false}');
+  expect(source).toContain('canGoBack={true}');
+  expect(source).toContain('onBack={state.history.length > 0 ? goBack : onClose}');
 });
 
 test('success close resets session while incomplete close preserves it', () => {

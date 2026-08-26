@@ -9,6 +9,9 @@ import type {
   ClosingRow,
   CartTotals,
   Transaction,
+  PrinterSettings,
+  PaperWidth,
+  PrintCopies,
 } from '../types';
 import {
   sampleProducts,
@@ -19,7 +22,15 @@ import {
 } from '../mock/data';
 import { calculateCart } from '../utils/cart';
 
+export interface CompleteRefundPayload {
+  transactionId: string;
+  lines: Array<{ lineIndex: number; quantity: number }>;
+  reason: string;
+  method: string;
+}
+
 export interface PosState {
+  products: Product[];
   selectedCategory: string;
   searchQuery: string;
   cart: CartLine[];
@@ -36,6 +47,7 @@ export interface PosState {
   isOfflineDemo: boolean;
   isErrorDemo: boolean;
   transactions: Transaction[];
+  printerSettings: PrinterSettings;
 }
 
 export type PosAction =
@@ -56,13 +68,18 @@ export type PosAction =
   | { type: 'BACKSPACE_CASH' }
   | { type: 'SET_HISTORY_FILTER'; payload: HistoryFilterType }
   | { type: 'SELECT_TRANSACTION'; payload: string }
+  | { type: 'COMPLETE_REFUND'; payload: CompleteRefundPayload }
   | { type: 'SET_COUNTED'; payload: { method: string; counted: number } }
   | { type: 'SET_OPENING_BALANCES'; payload: { cash: number; qris: number } }
   | { type: 'TOGGLE_OFFLINE_DEMO' }
   | { type: 'TOGGLE_ERROR_DEMO' }
+  | { type: 'SET_PRINTER_PAPER_WIDTH'; payload: PaperWidth }
+  | { type: 'SET_PRINTER_COPIES'; payload: PrintCopies }
+  | { type: 'SET_PRINTER_AUTO_PRINT'; payload: boolean }
   | { type: 'RESET_SESSION' };
 
 export const initialPosState: PosState = {
+  products: sampleProducts,
   selectedCategory: 'Semua',
   searchQuery: '',
   cart: [{ product: sampleProducts[0], quantity: 1 }],
@@ -79,6 +96,11 @@ export const initialPosState: PosState = {
   isOfflineDemo: false,
   isErrorDemo: false,
   transactions: sampleTransactions,
+  printerSettings: {
+    paperWidth: '80 mm',
+    copies: 1,
+    autoPrint: false,
+  },
 };
 
 export function posReducer(state: PosState, action: PosAction): PosState {
@@ -165,6 +187,76 @@ export function posReducer(state: PosState, action: PosAction): PosState {
     case 'SELECT_TRANSACTION':
       return { ...state, selectedTransactionId: action.payload };
 
+    case 'COMPLETE_REFUND': {
+      const transactionIndex = state.transactions.findIndex(
+        (transaction) => transaction.id === action.payload.transactionId
+      );
+      const transaction = state.transactions[transactionIndex];
+      if (
+        !transaction ||
+        (transaction.status !== 'Berhasil' &&
+          transaction.status !== 'Dikembalikan Sebagian')
+      ) {
+        return state;
+      }
+
+      const refundedByLine = transaction.lines.map((line, lineIndex) => {
+        const previouslyRefunded = transaction.refundedLines?.[lineIndex]?.quantity ?? 0;
+        const requested = action.payload.lines.find(
+          (selection) => selection.lineIndex === lineIndex
+        )?.quantity ?? 0;
+        return Math.min(
+          Math.max(0, Math.floor(requested)),
+          Math.max(0, line.quantity - previouslyRefunded)
+        );
+      });
+      if (!refundedByLine.some((quantity) => quantity > 0)) return state;
+
+      const refundedLines = transaction.lines.map((line, lineIndex) => ({
+        productName: line.productName,
+        price: line.price,
+        quantity:
+          (transaction.refundedLines?.[lineIndex]?.quantity ?? 0) +
+          refundedByLine[lineIndex],
+      }));
+      const refundSubtotal = transaction.lines.reduce(
+        (sum, line, lineIndex) => sum + line.price * refundedByLine[lineIndex],
+        0
+      );
+      const refundTax =
+        transaction.subtotal > 0
+          ? Math.round((transaction.tax * refundSubtotal) / transaction.subtotal)
+          : 0;
+      const refundedSubtotal =
+        (transaction.refundedSubtotal ?? 0) + refundSubtotal;
+      const refundedTax = (transaction.refundedTax ?? 0) + refundTax;
+      const fullyRefunded = transaction.lines.every(
+        (line, lineIndex) => refundedLines[lineIndex].quantity >= line.quantity
+      );
+      const updatedTransaction: Transaction = {
+        ...transaction,
+        status: fullyRefunded ? 'Dikembalikan' : 'Dikembalikan Sebagian',
+        refundReason: action.payload.reason,
+        refundMethod: action.payload.method,
+        refundedLines,
+        refundedSubtotal,
+        refundedTax,
+        refundedTotal: Math.min(transaction.total, refundedSubtotal + refundedTax),
+      };
+
+      const products = state.products.map((product) => {
+        const restored = transaction.lines.reduce(
+          (sum, line, lineIndex) =>
+            line.productName === product.name ? sum + refundedByLine[lineIndex] : sum,
+          0
+        );
+        return restored > 0 ? { ...product, stock: product.stock + restored } : product;
+      });
+      const transactions = [...state.transactions];
+      transactions[transactionIndex] = updatedTransaction;
+      return { ...state, products, transactions };
+    }
+
     case 'SET_COUNTED': {
       const { method, counted } = action.payload;
       const updatedRows = state.closingRows.map((row) => {
@@ -193,6 +285,33 @@ export function posReducer(state: PosState, action: PosAction): PosState {
 
     case 'TOGGLE_ERROR_DEMO':
       return { ...state, isErrorDemo: !state.isErrorDemo };
+
+    case 'SET_PRINTER_PAPER_WIDTH':
+      return {
+        ...state,
+        printerSettings: {
+          ...state.printerSettings,
+          paperWidth: action.payload,
+        },
+      };
+
+    case 'SET_PRINTER_COPIES':
+      return {
+        ...state,
+        printerSettings: {
+          ...state.printerSettings,
+          copies: action.payload,
+        },
+      };
+
+    case 'SET_PRINTER_AUTO_PRINT':
+      return {
+        ...state,
+        printerSettings: {
+          ...state.printerSettings,
+          autoPrint: action.payload,
+        },
+      };
 
     case 'RESET_SESSION':
       return {
@@ -236,10 +355,14 @@ export type PosActions = {
   backspaceCash: () => void;
   setHistoryFilter: (filter: HistoryFilterType) => void;
   selectTransaction: (id: string) => void;
+  completeRefund: (payload: CompleteRefundPayload) => void;
   setCounted: (method: string, counted: number) => void;
   setOpeningBalances: (cash: number, qris: number) => void;
   toggleOfflineDemo: () => void;
   toggleErrorDemo: () => void;
+  setPaperWidth: (paperWidth: PaperWidth) => void;
+  setCopies: (copies: PrintCopies) => void;
+  setAutoPrint: (autoPrint: boolean) => void;
   resetSession: () => void;
 };
 
@@ -253,7 +376,7 @@ export function computePosDerived(state: PosState): PosDerivedState {
   const remaining = Math.max(0, totals.total - state.cashReceived);
   const openingTotal = state.openingCash + state.openingQris;
 
-  const visibleProducts = sampleProducts.filter((p) => {
+  const visibleProducts = state.products.filter((p) => {
     const matchCategory =
       state.selectedCategory === 'Semua' || p.category === state.selectedCategory;
     const matchQuery =
@@ -265,7 +388,9 @@ export function computePosDerived(state: PosState): PosDerivedState {
   const visibleTransactions = state.transactions.filter((t) => {
     if (state.historyFilter === 'All') return true;
     if (state.historyFilter === 'Success') return t.status === 'Berhasil';
-    if (state.historyFilter === 'Refunded') return t.status === 'Dikembalikan';
+    if (state.historyFilter === 'Refunded') {
+      return t.status === 'Dikembalikan' || t.status === 'Dikembalikan Sebagian';
+    }
     if (state.historyFilter === 'Draft') return t.status === 'Draf';
     return true;
   });
@@ -326,12 +451,20 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_HISTORY_FILTER', payload: filter }),
       selectTransaction: (id: string) =>
         dispatch({ type: 'SELECT_TRANSACTION', payload: id }),
+      completeRefund: (payload: CompleteRefundPayload) =>
+        dispatch({ type: 'COMPLETE_REFUND', payload }),
       setCounted: (method: string, counted: number) =>
         dispatch({ type: 'SET_COUNTED', payload: { method, counted } }),
       setOpeningBalances: (cash: number, qris: number) =>
         dispatch({ type: 'SET_OPENING_BALANCES', payload: { cash, qris } }),
       toggleOfflineDemo: () => dispatch({ type: 'TOGGLE_OFFLINE_DEMO' }),
       toggleErrorDemo: () => dispatch({ type: 'TOGGLE_ERROR_DEMO' }),
+      setPaperWidth: (paperWidth: PaperWidth) =>
+        dispatch({ type: 'SET_PRINTER_PAPER_WIDTH', payload: paperWidth }),
+      setCopies: (copies: PrintCopies) =>
+        dispatch({ type: 'SET_PRINTER_COPIES', payload: copies }),
+      setAutoPrint: (autoPrint: boolean) =>
+        dispatch({ type: 'SET_PRINTER_AUTO_PRINT', payload: autoPrint }),
       resetSession: () => dispatch({ type: 'RESET_SESSION' }),
     };
   }, []);

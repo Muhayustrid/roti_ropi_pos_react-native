@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import { Colors, Typography, Spacing, Radius } from '../theme/tokens';
 import { PosButton } from './PosButton';
 import { PosIcon } from './PosIcon';
+import { PosLoadingIndicator } from './PosLoadingIndicator';
 
 export interface StateViewProps {
   type?: 'loading' | 'error' | 'empty' | 'offline';
@@ -38,7 +38,7 @@ export function StateView({
     >
       <View style={styles.iconContainer}>
         {type === 'loading' ? (
-          <ActivityIndicator size="large" color={Colors.Brand} />
+          <PosLoadingIndicator accessibilityLabel={title} />
         ) : icon ? (
           icon
         ) : (

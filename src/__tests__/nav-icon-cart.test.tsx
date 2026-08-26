@@ -48,6 +48,41 @@ describe('Task 10: Full-width nav + cash register icon + interactive cart sheet'
     }
   });
 
+  test('PosNavigation active background covers the complete icon and label item', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PosNavigation.tsx'),
+      'utf8'
+    );
+
+    expect(source).toContain('isSelected && styles.bottomItemSelected');
+    expect(source).not.toContain('isSelected && styles.bottomIconIndicatorSelected');
+  });
+
+  test('POS layout keeps shared chrome mounted and animates only route content', () => {
+    const layoutSource = fs.readFileSync(
+      path.join(process.cwd(), 'app/(pos)/_layout.tsx'),
+      'utf8'
+    );
+    const routeSources = ['index.tsx', 'history.tsx', 'more.tsx'].map((file) =>
+      fs.readFileSync(path.join(process.cwd(), 'app/(pos)', file), 'utf8')
+    );
+    const cashierSource = fs.readFileSync(
+      path.join(process.cwd(), 'src/features/cashier/CashierScreen.tsx'),
+      'utf8'
+    );
+
+    expect(layoutSource).toContain('<PosTopBar');
+    expect(layoutSource).toContain('<PosNavigation');
+    expect(layoutSource).toContain('<Slot />');
+    expect(layoutSource).toContain('<Animated.View');
+    expect(layoutSource).toContain('useNativeDriver: true');
+    expect(layoutSource).toContain('duration: 180');
+    expect(routeSources.every((source) => !source.includes('<PosTopBar'))).toBe(true);
+    expect(routeSources.every((source) => !source.includes('<PosNavigation'))).toBe(true);
+    expect(cashierSource).not.toContain('<PosTopBar');
+    expect(cashierSource).not.toContain('<PosNavigation');
+  });
+
   test('CashierScreen cart modal replaced with interactive bottom sheet behavior', () => {
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/features/cashier/CashierScreen.tsx'),

@@ -28,10 +28,10 @@ export function getPaymentPresentation(
 }
 
 export function getInitialPaymentSnap(
-  width: number,
+  _width: number,
   _height: number
 ): SheetSnapState {
-  return width >= 700 ? 'expanded' : 'collapsed';
+  return 'expanded';
 }
 
 export interface PaymentFlowShellProps {
@@ -41,6 +41,7 @@ export interface PaymentFlowShellProps {
   onClose: () => void;
   width?: number;
   height?: number;
+  flowLabel?: string;
   children: React.ReactNode;
 }
 
@@ -51,6 +52,7 @@ export function PaymentFlowShell({
   onClose,
   width: customWidth,
   height: customHeight,
+  flowLabel = 'pembayaran',
   children,
 }: PaymentFlowShellProps) {
   const windowDimensions = useWindowDimensions();
@@ -137,7 +139,7 @@ export function PaymentFlowShell({
       onPress={onClose}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel="Tutup pembayaran"
+      accessibilityLabel={`Tutup ${flowLabel}`}
       style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
     >
       <PosIcon name="close" size={22} color={Colors.Text} />
@@ -168,7 +170,7 @@ export function PaymentFlowShell({
         style={styles.backdrop}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel="Tutup pembayaran"
+        accessibilityLabel={`Tutup ${flowLabel}`}
       />
       <Animated.View style={[styles.sheetContainer, { height: heightAnim }]}>
         <View {...panResponder.panHandlers} style={styles.dragZone}>
@@ -178,8 +180,8 @@ export function PaymentFlowShell({
             accessibilityRole="button"
             accessibilityLabel={
               snapState === 'expanded'
-                ? 'Kecilkan pembayaran'
-                : 'Perbesar pembayaran'
+                ? `Kecilkan ${flowLabel}`
+                : `Perbesar ${flowLabel}`
             }
             style={styles.dragHandleButton}
           >

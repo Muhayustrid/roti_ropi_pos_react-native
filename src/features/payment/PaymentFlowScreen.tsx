@@ -173,8 +173,8 @@ export function PaymentFlowScreen({
   return (
     <PaymentFlowShell
       title={titles[state.step]}
-      canGoBack={state.history.length > 0}
-      onBack={goBack}
+      canGoBack={true}
+      onBack={state.history.length > 0 ? goBack : onClose}
       onClose={handleClose}
       width={width}
       height={height}

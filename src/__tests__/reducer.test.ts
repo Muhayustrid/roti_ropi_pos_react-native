@@ -20,6 +20,11 @@ describe('posReducer', () => {
     expect(initialPosState.openingQris).toBe(0);
     expect(initialPosState.isOfflineDemo).toBe(false);
     expect(initialPosState.isErrorDemo).toBe(false);
+    expect(initialPosState.printerSettings).toEqual({
+      paperWidth: '80 mm',
+      copies: 1,
+      autoPrint: false,
+    });
   });
 
   test('SET_CATEGORY updates selectedCategory', () => {
@@ -115,6 +120,93 @@ describe('posReducer', () => {
     expect(state2.selectedTransactionId).toBe('#TRX-9400');
   });
 
+  test('COMPLETE_REFUND accumulates partial and full refunds and restores stock once', () => {
+    const partial = posReducer(initialPosState, {
+      type: 'COMPLETE_REFUND',
+      payload: {
+        transactionId: '#TRX-9402',
+        lines: [{ lineIndex: 0, quantity: 1 }],
+        reason: 'Salah pesanan',
+        method: 'Pengembalian QRIS',
+      },
+    });
+
+    expect(partial.transactions.find((t) => t.id === '#TRX-9402')).toMatchObject({
+      status: 'Dikembalikan Sebagian',
+      refundedSubtotal: 12000,
+      refundedTax: 1200,
+      refundedTotal: 13200,
+      refundReason: 'Salah pesanan',
+      refundMethod: 'Pengembalian QRIS',
+    });
+    expect(partial.products.find((p) => p.name === 'Roti Manis')?.stock).toBe(43);
+
+    const full = posReducer(partial, {
+      type: 'COMPLETE_REFUND',
+      payload: {
+        transactionId: '#TRX-9402',
+        lines: [
+          { lineIndex: 0, quantity: 1 },
+          { lineIndex: 1, quantity: 3 },
+        ],
+        reason: 'Produk rusak',
+        method: 'Pengembalian Tunai',
+      },
+    });
+    const transaction = full.transactions.find((t) => t.id === '#TRX-9402');
+    expect(transaction).toMatchObject({
+      status: 'Dikembalikan',
+      refundedSubtotal: 79500,
+      refundedTax: 7950,
+      refundedTotal: 87450,
+      refundReason: 'Produk rusak',
+      refundMethod: 'Pengembalian Tunai',
+    });
+    expect(full.products.find((p) => p.name === 'Roti Manis')?.stock).toBe(44);
+    expect(full.products.find((p) => p.name === 'Croissant Butter')?.stock).toBe(21);
+
+    const duplicate = posReducer(full, {
+      type: 'COMPLETE_REFUND',
+      payload: {
+        transactionId: '#TRX-9402',
+        lines: [{ lineIndex: 0, quantity: 1 }],
+        reason: 'Salah pesanan',
+        method: 'Pengembalian QRIS',
+      },
+    });
+    expect(duplicate).toBe(full);
+  });
+
+  test('COMPLETE_REFUND records unmatched products without changing product stock', () => {
+    const nextState = posReducer(initialPosState, {
+      type: 'COMPLETE_REFUND',
+      payload: {
+        transactionId: '#TRX-9400',
+        lines: [{ lineIndex: 0, quantity: 1 }],
+        reason: 'Produk rusak',
+        method: 'Pengembalian Tunai',
+      },
+    });
+
+    expect(nextState).toBe(initialPosState);
+    expect(nextState.products).toEqual(initialPosState.products);
+  });
+
+  test('Refunded filter includes partial refunds', () => {
+    const partial = posReducer(initialPosState, {
+      type: 'COMPLETE_REFUND',
+      payload: {
+        transactionId: '#TRX-9402',
+        lines: [{ lineIndex: 0, quantity: 1 }],
+        reason: 'Salah pesanan',
+        method: 'Pengembalian QRIS',
+      },
+    });
+    const refunded = computePosDerived({ ...partial, historyFilter: 'Refunded' });
+
+    expect(refunded.visibleTransactions.map((t) => t.id)).toContain('#TRX-9402');
+  });
+
   test('SET_COUNTED updates counted row and recalculates difference', () => {
     const state1 = posReducer(initialPosState, {
       type: 'SET_COUNTED',
@@ -142,13 +234,45 @@ describe('posReducer', () => {
     expect(s2.isErrorDemo).toBe(true);
   });
 
+  test('printer actions update paper width, copies, and Auto-print', () => {
+    const withPaper = posReducer(initialPosState, {
+      type: 'SET_PRINTER_PAPER_WIDTH',
+      payload: '58 mm',
+    });
+    const withCopies = posReducer(withPaper, {
+      type: 'SET_PRINTER_COPIES',
+      payload: 3,
+    });
+    const withAutoPrint = posReducer(withCopies, {
+      type: 'SET_PRINTER_AUTO_PRINT',
+      payload: true,
+    });
+
+    expect(withAutoPrint.printerSettings).toEqual({
+      paperWidth: '58 mm',
+      copies: 3,
+      autoPrint: true,
+    });
+  });
+
   test('RESET_SESSION restores default state', () => {
-    const modified = posReducer(initialPosState, { type: 'CLEAR_CART' });
+    const modified = posReducer(
+      posReducer(initialPosState, {
+        type: 'SET_PRINTER_AUTO_PRINT',
+        payload: true,
+      }),
+      { type: 'CLEAR_CART' }
+    );
     expect(modified.cart.length).toBe(0);
 
     const reset = posReducer(modified, { type: 'RESET_SESSION' });
     expect(reset.cart.length).toBe(1);
     expect(reset.cart[0].product.name).toBe('Roti Manis');
+    expect(reset.printerSettings).toEqual({
+      paperWidth: '80 mm',
+      copies: 1,
+      autoPrint: false,
+    });
   });
 
   test('computePosDerived selectedTransaction must search visibleTransactions, then fallback visibleTransactions[0]', () => {

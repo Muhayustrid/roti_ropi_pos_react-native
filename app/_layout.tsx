@@ -15,6 +15,14 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: 'transparent' },
           }}
         />
+        <Stack.Screen
+          name="refund/[id]"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'none',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
       </Stack>
     </PosProvider>
   );

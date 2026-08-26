@@ -117,15 +117,11 @@ export const PosNavigation = React.memo(function PosNavigation({
             accessibilityState={{ selected: isSelected }}
             style={({ pressed }) => [
               styles.bottomItem,
+              isSelected && styles.bottomItemSelected,
               pressed && styles.pressed,
             ]}
           >
-            <View
-              style={[
-                styles.bottomIconIndicator,
-                isSelected && styles.bottomIconIndicatorSelected,
-              ]}
-            >
+            <View style={styles.bottomIconIndicator}>
               <PosIcon
                 name={item.iconName}
                 size={22}
@@ -166,6 +162,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.s1,
   },
+  bottomItemSelected: {
+    backgroundColor: Colors.BrandSoft,
+  },
   bottomIconIndicator: {
     width: 48,
     height: 28,
@@ -173,9 +172,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
-  },
-  bottomIconIndicatorSelected: {
-    backgroundColor: Colors.BrandSoft,
   },
   bottomIconText: {
     fontSize: 18,

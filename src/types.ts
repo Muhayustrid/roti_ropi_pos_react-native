@@ -35,6 +35,15 @@ export interface Promo {
 
 export type PaymentMethodType = 'Cash' | 'Qris' | 'CardPayment' | string;
 
+export type PaperWidth = '58 mm' | '80 mm';
+export type PrintCopies = 1 | 2 | 3;
+
+export interface PrinterSettings {
+  paperWidth: PaperWidth;
+  copies: PrintCopies;
+  autoPrint: boolean;
+}
+
 export interface PaymentMethodOption {
   id: PaymentMethodType;
   label: string;
@@ -44,13 +53,19 @@ export interface PaymentMethodOption {
 
 export type HistoryFilterType = 'All' | 'Success' | 'Refunded' | 'Draft';
 
-export type TransactionStatus = 'Berhasil' | 'Dikembalikan' | 'Draf';
+export type TransactionStatus =
+  | 'Berhasil'
+  | 'Dikembalikan Sebagian'
+  | 'Dikembalikan'
+  | 'Draf';
 
 export interface TransactionLine {
   productName: string;
   quantity: number;
   price: number;
 }
+
+export type RefundLine = TransactionLine;
 
 export interface Transaction {
   id: string;
@@ -66,6 +81,10 @@ export interface Transaction {
   lines: TransactionLine[];
   refundReason?: string;
   refundMethod?: string;
+  refundedLines?: RefundLine[];
+  refundedSubtotal?: number;
+  refundedTax?: number;
+  refundedTotal?: number;
 }
 
 export interface SessionInfo {

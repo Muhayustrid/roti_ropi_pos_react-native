@@ -70,6 +70,9 @@ export function PaymentSuccessScreen({
           paymentMethod={currentMethodOption.label}
           cashReceived={state.cashReceived}
           change={derived.change}
+          paperWidth={state.printerSettings.paperWidth}
+          copies={state.printerSettings.copies}
+          autoPrint={state.printerSettings.autoPrint}
           onNewTransaction={handleStartNewTransaction}
         />
       </View>
