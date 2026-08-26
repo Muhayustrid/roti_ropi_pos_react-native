@@ -64,7 +64,7 @@ Preserve minimum 48dp touch targets and validate responsive changes in compact p
 
 ## Backend integration authority
 
-Read `docs/dynamic-promotion-integration-handoff.md` before any Dynamic Promotion networking, state, picker, cart, payment, or persistence work. This documentation task moves planning beyond the local Phase 1 mock, but it does not authorize source integration. Stop until the handoff's bearer-route and authoritative combined-quote blockers both have executable backend evidence.
+Read `docs/dynamic-promotion-integration-handoff.md` before any Dynamic Promotion networking, state, picker, cart, payment, or persistence work. Backend bearer-route and authoritative-quote blockers closed on 2026-08-26. This documentation task does not authorize source integration, dependency changes, migrate, or deployment. Follow the handoff's gated sequence under a separate approved implementation task.
 
 ## Testing conventions
 

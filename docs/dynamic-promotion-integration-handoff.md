@@ -18,7 +18,7 @@ The current client is local and mock-only. It has no HTTP transport, OAuth trans
 
 The current `Promo` and `OfferPicker` implement a local percentage discount. They are not Dynamic Promotion contracts.
 
-The target client will discover, quote, select, and submit backend-owned Dynamic Promotion packages. Do not start checkout integration until both blockers in section 4 close.
+The target client will discover, quote, select, and submit backend-owned Dynamic Promotion packages. Both blockers in section 4 closed with executable backend evidence on 2026-08-26. Android transport and UI implementation may now start.
 
 ## 2. Working Tree Safety
 
@@ -46,21 +46,21 @@ Do not modify the refund paths from this handoff.
 Use these authorities in order:
 
 1. Current backend runtime source and executable tests.
-2. `roti_ropi_pos` commit `859e0b7`.
-3. `selling_additional` commit `81346f0`.
+2. `roti_ropi_pos` commit `4eaedbfdceb6af9ec6654e2fc7c3b29e82b42753`.
+3. `selling_additional` commit `b0bf90d91f1929d6d2086044863632d36d4adfe3`.
 4. `roti_ropi_pos/docs/mobile-pos/api-contract.md`.
 5. Other backend and Android documentation.
 
-The two commits prove the sale payload extension and Promotion permission. They do not prove end-to-end Android readiness.
+The backend commits close bearer-route and authoritative-quote blockers. They do not implement Android transport, storage, state, or UI.
 
-## 4. Hard Blockers
+## 4. Backend Readiness Gates
 
 | Blocker | Current evidence | Exit requirement |
 | --- | --- | --- |
-| Promotion facade bearer access | `roti_ropi_pos/mobile_pos/auth_hook.py` allows only the 17 exact `roti_ropi_pos.api.v1.*` routes. A mobile-only cashier request to a `selling_additional` facade is rejected. Current facade tests call Python functions directly and bypass this hook. Existing facade checks also do not enforce assigned/enabled profile scope or narrow HTTP methods. | Real HTTP tests pass for all three exact routes with the configured Mobile POS bearer. Tests cover wrong client, expired token, disabled user, wrong role, missing/unassigned/disabled profile, method allowlists, alternate dispatch, and generic route rejection. |
-| Authoritative combined payable | `sales.quote_cart` rejects `promotions`. `quote_promotion` returns package pricing, not POS Invoice taxes, rounding, `grand_total`, `payable`, or payment policy. | A backend quote contract returns authoritative regular-only, promotion-only, and mixed-cart totals plus payment policy. Its result is accepted unchanged by `sales.submit`. |
+| Promotion facade bearer access — CLOSED (2026-08-26) | `roti_ropi_pos/mobile_pos/auth_hook.py` now allowlists 20 exact methods: 17 v1 routes and 3 POST-only `selling_additional` facades. Seventeen HTTP tests passed twice. They cover all exact facade paths, bearer failures, profile scope, method restrictions, alternate dispatch, and generic route rejection. | MET |
+| Authoritative combined payable — CLOSED (2026-08-26) | `sales.quote_cart` accepts the same `promotions` object or `null` as `sales.submit`. It returns authoritative totals and payment policy for regular-only, promotion-only, and mixed carts. Twelve quote tests and five quote-submit integration tests passed twice. Quote tests also prove no durable invoice, request, selection, fact, Item Price, stock, or accounting artifact. | MET |
 
-**Stop condition:** Do not implement Dynamic Promotion payment or sale submission while either blocker remains open.
+**Stop condition — RETIRED:** Both blockers are now closed. Dynamic Promotion payment and sale submission may now proceed via the authoritative quote.
 
 Promotion read permission does not bypass the route gate. `quote_promotion.total_price` does not authorize Android to calculate tax, rounding, `client_accepted_grand_total`, `payable`, or payments.
 
@@ -68,7 +68,7 @@ Promotion read permission does not bypass the route gate. `quote_promotion.total
 
 ### 5.1 Promotion facades
 
-These methods exist in `selling_additional`. They currently remain blocked for mobile-only cashier HTTP access.
+These methods exist in `selling_additional`. They are three POST-only routes within the 20-method Mobile POS bearer allowlist. Android may call them with the configured Mobile POS bearer and an enabled POS Profile assigned via `applicable_for_users`.
 
 ```text
 /api/method/selling_additional.overrides.pos_promo_api.get_available_promotions
@@ -76,7 +76,7 @@ These methods exist in `selling_additional`. They currently remain blocked for m
 /api/method/selling_additional.overrides.pos_promo_api.quote_promotion
 ```
 
-The current bare whitelist decorators do not define a narrow HTTP method contract. Do not call these paths yet. The required mobile follow-up makes all three facade calls POST-only, matching the existing Desk POS `frappe.xcall()` consumer.
+The decorators are now `@frappe.whitelist(methods=["POST"])`, matching the existing Desk POS `frappe.xcall()` (POST) consumer. All three are POST-only; GET/PUT/DELETE/PATCH are rejected.
 
 They return native Frappe responses:
 
@@ -88,14 +88,13 @@ They return native Frappe responses:
 
 They do not return the Mobile POS v1 `ok`, `data`, `error`, and `meta` envelope.
 
-Current facade checks require:
+All three facades require:
 
 - read permission on `Promotion`;
-- read permission on a supplied `POS Profile`.
+- an enabled POS Profile assigned to the authenticated cashier through `applicable_for_users`;
+- a `POST` request through the exact allowlisted path.
 
-These checks are not yet a complete Mobile POS scope boundary. They do not prove that the profile is enabled or assigned through `applicable_for_users`. `get_promotion_detail` currently permits an omitted profile and returns ineligible detail with `eligibility.is_eligible = false`. The bare whitelist decorators also accept more HTTP methods than the intended mobile contract.
-
-Before Android access opens, all three mobile calls must require an enabled profile assigned to the authenticated cashier. All three must use explicit POST-only contracts, matching the existing Desk POS `frappe.xcall()` consumer. Missing profiles, unassigned profiles, disabled profiles, and all unapproved methods must fail closed.
+All three methods require `pos_profile`. `get_promotion_detail` returns `eligibility.is_eligible == false` for an ineligible promotion on the assigned outlet. Quote and submit reject an ineligible promotion. Missing, unassigned, or disabled profiles fail closed.
 
 `Mobile POS Cashier` has read-only Promotion permission. It has no create, write, delete, report, export, share, or submit permission.
 
@@ -164,7 +163,7 @@ Rules:
 - `selling_additional` owns semantic validation and materialization.
 - A promotion-only request may send `items: []` when `promotions` is non-null.
 - A plain request still requires a non-empty `items` array.
-- `sales.quote_cart` rejects a `promotions` field.
+- `sales.quote_cart` accepts the same optional `promotions` object/null as `sales.submit` (64 KiB, opaque) and returns authoritative totals for regular, promotion-only, and mixed carts.
 - The response remains the standard v1 `SaleDetail`.
 - No new response field or error code exists.
 
@@ -193,6 +192,8 @@ The Android repository has no durable pending-mutation store yet. Keep mutation 
 
 ## 6. Deployment Prerequisites
 
+Backend source and tests are committed and pushed on feature branches. This documentation does not authorize a merge, migrate, or deployment.
+
 Before a target site serves Dynamic Promotion sales:
 
 1. Take and record a site backup.
@@ -202,6 +203,8 @@ Before a target site serves Dynamic Promotion sales:
 5. Verify the site runs POS Invoice mode.
 
 A Promotion parent must never gain a selling Item Price. The engine owns its rate per transaction.
+
+Known suffix-scoped residue `035905d2` remains only on `selling-cutover.localhost`. It came from an earlier test transaction. A safe cleanup attempt hit a normal Frappe link constraint and rolled back fully. This residue does not affect production, backend code readiness, or Android integration. Keep that site test-only. Do not retry cleanup from this workstream.
 
 ## 7. Android File Map
 
@@ -224,25 +227,23 @@ Reuse existing theme tokens, `ResponsiveModal`, `PosButton`, `PosBadge`, `StateV
 
 ## 8. Gated Implementation Sequence
 
-Do not skip directly to picker work.
+Do not skip directly to picker work. Backend gates 1 and 2 are complete.
 
-1. Close the exact bearer-route blocker with backend source and real HTTP tests.
-2. Close the authoritative combined-quote blocker with backend source and executable tests.
-3. Add one shared `fetch` transport.
-4. Decode Mobile POS v1 envelopes and native Frappe responses separately.
-5. Select and approve Keystore-backed token storage.
-6. Select and approve durable pending-mutation storage.
-7. Integrate bootstrap, profile, opening, catalog, item quote, and regular cart quote flows.
-8. Add Dynamic Promotion DTOs without converting wire decimal strings to floating-point values.
-9. Extend the existing reducer and context hooks.
-10. Adapt `OfferPicker.tsx` for discovery, detail, choices, quote, retry, and removal.
-11. Update both cart presentations from the same state.
-12. Replace local payable authority with the future combined backend quote.
-13. Build one final sale body with regular items, promotion instances, and exact payments.
-14. Persist the final body and one key before sending.
-15. Reuse the same body and key after any unknown outcome.
-16. Persist the terminal response before clearing pending data.
-17. Test compact phone, expanded tablet, and short landscape layouts.
+1. Add one shared `fetch` transport.
+2. Decode Mobile POS v1 envelopes and native Frappe responses separately.
+3. Select and approve Keystore-backed token storage.
+4. Select and approve durable pending-mutation storage.
+5. Integrate bootstrap, profile, opening, catalog, item quote, and regular cart quote flows.
+6. Add Dynamic Promotion DTOs without converting wire decimal strings to floating-point values.
+7. Extend the existing reducer and context hooks.
+8. Adapt `OfferPicker.tsx` for discovery, detail, choices, quote, retry, and removal.
+9. Update both cart presentations from the same state.
+10. Replace local payable authority with authoritative `sales.quote_cart` output.
+11. Build one final sale body with regular items, promotion instances, and exact payments.
+12. Persist the final body and one key before sending.
+13. Reuse the same body and key after any unknown outcome.
+14. Persist the terminal response before clearing pending data.
+15. Test compact phone, expanded tablet, and short landscape layouts.
 
 ## 9. UI and Accessibility Rules
 
@@ -270,7 +271,7 @@ Add one focused `src/__tests__/dynamic-promotion-contract.test.ts` when transpor
 - native Frappe `message` decoding;
 - exact promotion request serialization;
 - same-body and same-key replay after response loss;
-- fail-closed behavior while the combined quote contract is unavailable.
+- fail-closed behavior when an authoritative quote is missing, stale, or rejected.
 
 Do not modify `src/__tests__/refund-flow.test.ts` from this workstream.
 
