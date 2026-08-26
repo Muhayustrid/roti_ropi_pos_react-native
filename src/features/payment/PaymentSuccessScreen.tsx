@@ -15,11 +15,13 @@ import { samplePaymentMethods } from '../../mock/data';
 
 export interface PaymentSuccessScreenProps {
   onNewTransaction?: () => void;
+  showHeader?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 export function PaymentSuccessScreen({
   onNewTransaction,
+  showHeader = true,
   style,
 }: PaymentSuccessScreenProps) {
   const state = usePosState();
@@ -37,12 +39,13 @@ export function PaymentSuccessScreen({
 
   return (
     <View style={[styles.container, style]}>
-      {/* TopBar */}
-      <PosTopBar
-        title="Transaksi Berhasil"
-        onBack={handleStartNewTransaction}
-        backIsClose
-      />
+      {showHeader ? (
+        <PosTopBar
+          title="Transaksi Berhasil"
+          onBack={handleStartNewTransaction}
+          backIsClose
+        />
+      ) : null}
 
       {/* Success Hero Header */}
       <View style={styles.successHeader}>

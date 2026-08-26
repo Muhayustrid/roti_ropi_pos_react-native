@@ -17,6 +17,24 @@ export const ActivityIndicator = mockComponent('ActivityIndicator');
 export const ScrollView = mockComponent('ScrollView');
 export const FlatList = mockComponent('FlatList');
 
+export const BackHandler = {
+  addEventListener: () => ({ remove: () => {} }),
+};
+
+export const Animated = {
+  Value: class {
+    stopAnimation() {}
+    setValue() {}
+  },
+  View: mockComponent('Animated.View'),
+  spring: () => ({ start: (callback?: () => void) => callback?.() }),
+  timing: () => ({ start: (callback?: () => void) => callback?.() }),
+};
+
+export const PanResponder = {
+  create: () => ({ panHandlers: {} }),
+};
+
 export const StyleSheet = {
   create: <T extends Record<string, unknown>>(styles: T): T => styles,
   absoluteFillObject: {

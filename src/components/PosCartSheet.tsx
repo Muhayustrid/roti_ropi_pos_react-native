@@ -20,45 +20,19 @@ import { PosIcon } from './PosIcon';
 import { CartLine } from '../features/cashier/CartLine';
 import { formatRupiah } from '../utils/money';
 import { calculateCart } from '../utils/cart';
+import {
+  SHEET_COLLAPSED_RATIO,
+  SHEET_SPRING_CONFIG,
+  resolveSheetSnap,
+  type SheetSnapAction,
+  type SheetSnapState as SharedSheetSnapState,
+} from '../utils/bottomSheet';
 
-export const SHEET_HEIGHT_COLLAPSED = 120;
-export const SPRING_CONFIG = {
-  stiffness: 300,
-  damping: 30,
-  mass: 1,
-};
-
-export type SheetSnapState = 'collapsed' | 'expanded';
-export type SnapAction = 'collapsed' | 'expanded' | 'dismiss';
-
-export function resolveCartSheetSnap(
-  currentState: SheetSnapState,
-  gesture: { dy: number; vy?: number }
-): SnapAction {
-  const dy = gesture.dy;
-  const vy = gesture.vy ?? 0;
-
-  if (currentState === 'collapsed') {
-    // Swipe down past threshold from collapsed -> dismiss
-    if (dy > 60 || vy > 0.8) {
-      return 'dismiss';
-    }
-    // Swipe up past threshold from collapsed -> expand
-    if (dy < -50 || vy < -0.5) {
-      return 'expanded';
-    }
-    // Small gesture -> stay collapsed
-    return 'collapsed';
-  } else {
-    // currentState === 'expanded'
-    // Swipe down past threshold from expanded -> collapse
-    if (dy > 50 || vy > 0.5) {
-      return 'collapsed';
-    }
-    // Small gesture / swipe up -> stay expanded
-    return 'expanded';
-  }
-}
+export const SHEET_HEIGHT_COLLAPSED_RATIO = SHEET_COLLAPSED_RATIO;
+export const SPRING_CONFIG = SHEET_SPRING_CONFIG;
+export type SheetSnapState = SharedSheetSnapState;
+export type SnapAction = SheetSnapAction;
+export const resolveCartSheetSnap = resolveSheetSnap;
 
 export interface PosCartSheetProps {
   visible: boolean;
@@ -92,27 +66,28 @@ export function PosCartSheet({
   style,
 }: PosCartSheetProps) {
   const { height: windowHeight } = useWindowDimensions();
+  const collapsedHeight = windowHeight * SHEET_HEIGHT_COLLAPSED_RATIO;
   const expandedHeight = windowHeight;
 
   const [snapState, setSnapState] = useState<SheetSnapState>('collapsed');
   const snapStateRef = useRef<SheetSnapState>('collapsed');
   snapStateRef.current = snapState;
 
-  const heightAnim = useRef(new Animated.Value(SHEET_HEIGHT_COLLAPSED)).current;
-  const startDragHeight = useRef(SHEET_HEIGHT_COLLAPSED);
+  const heightAnim = useRef(new Animated.Value(collapsedHeight)).current;
+  const startDragHeight = useRef(collapsedHeight);
 
   useEffect(() => {
-    if (visible && snapState === 'expanded') {
+    if (visible) {
       Animated.spring(heightAnim, {
-        toValue: expandedHeight,
+        toValue: snapState === 'expanded' ? expandedHeight : collapsedHeight,
         useNativeDriver: false,
         ...SPRING_CONFIG,
       }).start();
     }
-  }, [expandedHeight, visible, snapState, heightAnim]);
+  }, [collapsedHeight, expandedHeight, visible, snapState, heightAnim]);
 
   const animateToState = (nextState: SheetSnapState) => {
-    const targetHeight = nextState === 'expanded' ? expandedHeight : SHEET_HEIGHT_COLLAPSED;
+    const targetHeight = nextState === 'expanded' ? expandedHeight : collapsedHeight;
     setSnapState(nextState);
     Animated.spring(heightAnim, {
       toValue: targetHeight,
@@ -134,12 +109,12 @@ export function PosCartSheet({
         onPanResponderGrant: () => {
           heightAnim.stopAnimation();
           startDragHeight.current =
-            snapStateRef.current === 'expanded' ? expandedHeight : SHEET_HEIGHT_COLLAPSED;
+            snapStateRef.current === 'expanded' ? expandedHeight : collapsedHeight;
         },
         onPanResponderMove: (_: unknown, gesture) => {
           // Drag up (negative dy) increases height; drag down (positive dy) decreases height
           const newHeight = startDragHeight.current - gesture.dy;
-          const minH = SHEET_HEIGHT_COLLAPSED - 60;
+          const minH = collapsedHeight - 60;
           const maxH = expandedHeight + 40;
           const clampedHeight = Math.min(Math.max(newHeight, minH), maxH);
           heightAnim.setValue(clampedHeight);
@@ -159,7 +134,7 @@ export function PosCartSheet({
           }
         },
       }),
-    [expandedHeight, heightAnim, onClose]
+    [collapsedHeight, expandedHeight, heightAnim, onClose]
   );
 
   const totals = useMemo(() => calculateCart(cart, promo, couponCode), [cart, promo, couponCode]);
@@ -168,7 +143,15 @@ export function PosCartSheet({
   if (!visible) return null;
 
   return (
-    <Animated.View style={[styles.sheetContainer, { height: heightAnim }, style]}>
+    <>
+      <Pressable
+        onPress={onClose}
+        style={styles.backdrop}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Tutup keranjang"
+      />
+      <Animated.View style={[styles.sheetContainer, { height: heightAnim }, style]}>
       {/* Drag & Header Zone */}
       <View {...panResponder.panHandlers} style={styles.dragZone}>
         <Pressable
@@ -188,12 +171,9 @@ export function PosCartSheet({
             accessibilityLabel={`Keranjang belanja, ${totalItemCount} item, total ${formatRupiah(totals.total)}`}
             style={styles.collapsedHeaderRow}
           >
-            <View style={styles.collapsedHeaderLeft}>
-              <View style={styles.collapsedBadge}>
-                <PosIcon name="cart" size={16} color={Colors.BrandInk} />
-                <Text style={styles.collapsedBadgeText}>{totalItemCount} item</Text>
-              </View>
-              <Text style={styles.collapsedTotalText}>{formatRupiah(totals.total)}</Text>
+            <View style={styles.collapsedBadge}>
+              <PosIcon name="cart" size={16} color={Colors.BrandInk} />
+              <Text style={styles.collapsedBadgeText}>{totalItemCount} item</Text>
             </View>
             <Pressable
               onPress={onClose}
@@ -360,11 +340,20 @@ export function PosCartSheet({
           />
         </View>
       </View>
-    </Animated.View>
+      </Animated.View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
   sheetContainer: {
     position: 'absolute',
     bottom: 0,
@@ -403,11 +392,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.s4,
     paddingBottom: Spacing.s2,
   },
-  collapsedHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.s2,
-  },
   collapsedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -420,10 +404,6 @@ const styles = StyleSheet.create({
   collapsedBadgeText: {
     ...Typography.SmSemi,
     color: Colors.BrandInk,
-  },
-  collapsedTotalText: {
-    ...Typography.MdBold,
-    color: Colors.Text,
   },
   expandedHeaderRow: {
     flexDirection: 'row',

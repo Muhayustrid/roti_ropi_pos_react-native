@@ -6,7 +6,16 @@ export default function RootLayout() {
   return (
     <PosProvider>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="payment"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'none',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+      </Stack>
     </PosProvider>
   );
 }

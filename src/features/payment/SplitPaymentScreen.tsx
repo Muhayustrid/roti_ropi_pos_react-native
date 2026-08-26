@@ -22,6 +22,9 @@ import { PosIcon } from '../../components/PosIcon';
 export interface SplitPaymentScreenProps {
   onBack?: () => void;
   onComplete?: () => void;
+  showHeader?: boolean;
+  allocations?: Record<string, number>;
+  onChangeAllocation?: (methodId: string, amount: number) => void;
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;
@@ -30,6 +33,9 @@ export interface SplitPaymentScreenProps {
 export function SplitPaymentScreen({
   onBack,
   onComplete,
+  showHeader = true,
+  allocations,
+  onChangeAllocation,
   width: customWidth,
   height: customHeight,
   style,
@@ -44,36 +50,39 @@ export function SplitPaymentScreen({
   const payable = derived.totals.total;
 
   // Initialize every editable allocation to 0 per DESIGN.md 8.7
-  const [allocations, setAllocations] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    samplePaymentMethods.forEach((m) => {
-      initial[m.id] = 0;
-    });
-    return initial;
-  });
+  const [localAllocations, setLocalAllocations] = useState<Record<string, number>>(
+    () => Object.fromEntries(samplePaymentMethods.map((method) => [method.id, 0]))
+  );
+  const currentAllocations = allocations ?? localAllocations;
 
   const handleUpdateAllocation = (methodId: string, amount: number) => {
-    setAllocations((prev) => ({
-      ...prev,
-      [methodId]: Math.max(0, amount),
-    }));
+    const normalizedAmount = Math.max(0, amount);
+    if (onChangeAllocation) {
+      onChangeAllocation(methodId, normalizedAmount);
+    } else {
+      setLocalAllocations((previous) => ({
+        ...previous,
+        [methodId]: normalizedAmount,
+      }));
+    }
   };
 
   const totalAllocated = useMemo(() => {
-    return Object.values(allocations).reduce((sum, val) => sum + (val || 0), 0);
-  }, [allocations]);
+    return Object.values(currentAllocations).reduce((sum, val) => sum + (val || 0), 0);
+  }, [currentAllocations]);
 
   const remainder = payable - totalAllocated;
   const isSettled = remainder === 0;
 
   return (
     <View style={[styles.container, style]}>
-      {/* Task TopBar */}
-      <PosTopBar
-        title="Pembayaran Terpisah"
-        onBack={onBack}
-        backIsClose
-      />
+      {showHeader ? (
+        <PosTopBar
+          title="Pembayaran Terpisah"
+          onBack={onBack}
+          backIsClose
+        />
+      ) : null}
 
       {/* Main Body */}
       <ScrollView
@@ -97,7 +106,7 @@ export function SplitPaymentScreen({
           <Text style={styles.sectionHeading}>Alokasi Metode Pembayaran</Text>
           <View style={styles.allocationList}>
             {samplePaymentMethods.map((method) => {
-              const currentVal = allocations[method.id] || 0;
+              const currentVal = currentAllocations[method.id] || 0;
 
               return (
                 <PosCard key={method.id} style={styles.allocationCard}>

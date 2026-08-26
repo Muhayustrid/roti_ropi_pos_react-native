@@ -2,11 +2,62 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   resolveCartSheetSnap,
+  SHEET_HEIGHT_COLLAPSED_RATIO,
   SPRING_CONFIG,
   type SnapAction,
 } from '../components/PosCartSheet';
+import {
+  resolveSheetSnap,
+  SHEET_COLLAPSED_RATIO,
+  SHEET_SPRING_CONFIG,
+} from '../utils/bottomSheet';
 
 describe('PosCartSheet state machine and snapping behavior', () => {
+  test('shared bottom sheet rules preserve 75% and 100% transitions', () => {
+    expect(SHEET_COLLAPSED_RATIO).toBe(0.75);
+    expect(resolveSheetSnap('collapsed', { dy: -60, vy: 0 })).toBe('expanded');
+    expect(resolveSheetSnap('expanded', { dy: 60, vy: 0 })).toBe('collapsed');
+    expect(resolveSheetSnap('collapsed', { dy: 70, vy: 0 })).toBe('dismiss');
+    expect(Object.keys(SHEET_SPRING_CONFIG).sort()).toEqual([
+      'damping',
+      'mass',
+      'stiffness',
+    ]);
+  });
+
+  test('opens at 75% of the window height', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PosCartSheet.tsx'),
+      'utf8'
+    );
+
+    expect(SHEET_HEIGHT_COLLAPSED_RATIO).toBe(0.75);
+    expect(source).toMatch(
+      /const\s+collapsedHeight\s*=\s*windowHeight\s*\*\s*SHEET_HEIGHT_COLLAPSED_RATIO;/
+    );
+    expect(source).toContain('new Animated.Value(collapsedHeight)');
+  });
+
+  test('outside backdrop closes the sheet', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PosCartSheet.tsx'),
+      'utf8'
+    );
+
+    expect(source).toMatch(
+      /<Pressable[\s\S]*?onPress=\{onClose\}[\s\S]*?style=\{styles\.backdrop\}[\s\S]*?\/>/
+    );
+  });
+
+  test('75% header shows item count without total price', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/PosCartSheet.tsx'),
+      'utf8'
+    );
+
+    expect(source).not.toContain('styles.collapsedTotalText');
+  });
+
   describe('resolveCartSheetSnap state machine transitions', () => {
     test('collapsed + swipe up (> 50dp) transitions to expanded', () => {
       const result: SnapAction = resolveCartSheetSnap('collapsed', { dy: -60, vy: 0 });

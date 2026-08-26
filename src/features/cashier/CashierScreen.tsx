@@ -60,6 +60,7 @@ export function CashierScreen({ onNavigateTab, onCheckout }: CashierScreenProps)
   );
 
   const handleCheckout = useCallback(() => {
+    setCartSheetVisible(false);
     _setCartModalVisible(false);
     if (onCheckout) {
       onCheckout();
@@ -470,6 +471,8 @@ const styles = StyleSheet.create({
   cartBarTitle: {
     ...Typography.MdBold,
     color: Colors.OnFill,
+    flex: 1,
+    marginLeft: Spacing.s3,
   },
   cartBarTotal: {
     ...Typography.MdBold,

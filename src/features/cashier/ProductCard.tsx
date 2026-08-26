@@ -10,6 +10,10 @@ import {
 import { Colors, Radius, Typography, Sizes, Spacing, Tone, type ToneName } from '../../theme/tokens';
 import { formatRupiah } from '../../utils/money';
 
+export function formatStockLabel(stock: number, unit: string) {
+  return `${stock} ${unit.replace(/^\d+\s*/, '')}`;
+}
+
 export interface ProductCardProps {
   id: string;
   name: string;
@@ -62,7 +66,7 @@ export const ProductCard = React.memo(function ProductCard({
       <View style={[styles.visualContainer, { backgroundColor: toneBg }]}>
         {/* Stock pill top-left */}
         <View style={styles.stockPill}>
-          <Text style={styles.stockText}>{`${stock} ${unit}`}</Text>
+          <Text style={styles.stockText}>{formatStockLabel(stock, unit)}</Text>
         </View>
 
         {/* Quantity pill top-right if in cart */}

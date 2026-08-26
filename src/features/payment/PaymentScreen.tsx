@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,8 @@ import {
 } from 'react-native';
 import { Colors, Radius, Typography, Spacing } from '../../theme/tokens';
 import { PosTopBar, PosActionFooter } from '../../components/PosBars';
-import { PosCard, PosPaddedCard, ToneIcon, SpreadRow } from '../../components/PosCard';
+import { PosCard, ToneIcon } from '../../components/PosCard';
 import { PosButton } from '../../components/PosButton';
-import { ResponsiveModal } from '../../components/ResponsiveModal';
 import { usePosState, usePosDerived, usePosActions } from '../../state/PosContext';
 import { samplePaymentMethods } from '../../mock/data';
 import { formatRupiah } from '../../utils/money';
@@ -25,6 +24,8 @@ export interface PaymentScreenProps {
   onProceedToCash?: () => void;
   onProceedToSplit?: () => void;
   onProceedToChecking?: () => void;
+  onProceedToConfirmation?: () => void;
+  showHeader?: boolean;
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;
@@ -35,6 +36,8 @@ export function PaymentScreen({
   onProceedToCash,
   onProceedToSplit,
   onProceedToChecking,
+  onProceedToConfirmation,
+  showHeader = true,
   width: customWidth,
   height: customHeight,
   style,
@@ -48,11 +51,8 @@ export function PaymentScreen({
   const derived = usePosDerived();
   const actions = usePosActions();
 
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-
   const selectedMethod = state.paymentMethod;
   const totals = derived.totals;
-  const customer = state.customer;
 
   // Grid column count based on DESIGN.md 6.2
   // Compact: 1 col, Medium: 2 cols, Expanded: 3 cols
@@ -69,27 +69,22 @@ export function PaymentScreen({
   const handlePrimaryProceed = () => {
     if (selectedMethod === 'Cash') {
       onProceedToCash?.();
+    } else if (onProceedToConfirmation) {
+      onProceedToConfirmation?.();
     } else {
-      setConfirmModalVisible(true);
+      onProceedToChecking?.();
     }
   };
 
-  const handleConfirmPayment = () => {
-    setConfirmModalVisible(false);
-    onProceedToChecking?.();
-  };
-
-  const currentMethodOption =
-    samplePaymentMethods.find((m) => m.id === selectedMethod) || samplePaymentMethods[0];
-
   return (
     <View style={[styles.container, style]}>
-      {/* Task TopBar */}
-      <PosTopBar
-        title="Pilih Pembayaran"
-        onBack={onBack}
-        backIsClose
-      />
+      {showHeader ? (
+        <PosTopBar
+          title="Pilih Pembayaran"
+          onBack={onBack}
+          backIsClose
+        />
+      ) : null}
 
       {/* Main Body */}
       <ScrollView
@@ -181,50 +176,6 @@ export function PaymentScreen({
           />
         </View>
       </PosActionFooter>
-
-      {/* Confirmation Modal for QRIS / Card */}
-      <ResponsiveModal
-        visible={confirmModalVisible}
-        onClose={() => setConfirmModalVisible(false)}
-        title="Selesaikan pembayaran ini?"
-        maxWidth={440}
-        footer={
-          <View style={styles.modalFooter}>
-            <PosButton
-              label="Kembali"
-              variant="Outline"
-              onPress={() => setConfirmModalVisible(false)}
-              style={styles.modalBtn}
-              accessibilityLabel="Kembali ke pilihan pembayaran"
-            />
-            <PosButton
-              label="Konfirmasi Pembayaran"
-              variant="Primary"
-              onPress={handleConfirmPayment}
-              style={styles.modalBtn}
-              accessibilityLabel="Konfirmasi dan proses pembayaran"
-            />
-          </View>
-        }
-      >
-        <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
-          <Text style={styles.modalSubtitle}>
-            Periksa detail sebelum mengonfirmasi transaksi.
-          </Text>
-
-          <PosPaddedCard style={styles.modalSummaryCard}>
-            <SpreadRow
-              label="Total Tagihan"
-              value={formatRupiah(totals.total)}
-              boldValue
-              valueColor={Colors.BrandInk}
-            />
-            <SpreadRow label="Pelanggan" value={customer.name} />
-            <SpreadRow label="Metode" value={currentMethodOption.label} />
-            <SpreadRow label="Jumlah Item" value={`${totals.itemCount} item`} />
-          </PosPaddedCard>
-        </ScrollView>
-      </ResponsiveModal>
     </View>
   );
 }
@@ -338,28 +289,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   actionBtn: {
-    flex: 1,
-  },
-  modalSubtitle: {
-    ...Typography.Sm,
-    color: Colors.Text2,
-    marginBottom: Spacing.s3,
-  },
-  modalScrollBody: {
-    maxHeight: 280,
-  },
-  modalSummaryCard: {
-    backgroundColor: Colors.SurfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.Border,
-    gap: Spacing.s2,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.s2,
-  },
-  modalBtn: {
     flex: 1,
   },
 });

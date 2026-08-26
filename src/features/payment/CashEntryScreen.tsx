@@ -20,6 +20,7 @@ import { getWindowClass } from '../../utils/layout';
 export interface CashEntryScreenProps {
   onBack?: () => void;
   onComplete?: () => void;
+  showHeader?: boolean;
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;
@@ -28,6 +29,7 @@ export interface CashEntryScreenProps {
 export function CashEntryScreen({
   onBack,
   onComplete,
+  showHeader = true,
   width: customWidth,
   height: customHeight,
   style,
@@ -167,12 +169,13 @@ export function CashEntryScreen({
 
   return (
     <View style={[styles.container, style]}>
-      {/* Task TopBar */}
-      <PosTopBar
-        title="Pembayaran · Tunai"
-        onBack={onBack}
-        backIsClose
-      />
+      {showHeader ? (
+        <PosTopBar
+          title="Pembayaran · Tunai"
+          onBack={onBack}
+          backIsClose
+        />
+      ) : null}
 
       {/* Content Area */}
       <ScrollView

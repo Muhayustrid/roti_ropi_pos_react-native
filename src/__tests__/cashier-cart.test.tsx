@@ -2,7 +2,7 @@ import React from 'react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { PosNavigation } from '../components/PosNavigation';
-import { ProductCard } from '../features/cashier/ProductCard';
+import { formatStockLabel, ProductCard } from '../features/cashier/ProductCard';
 import { CartLine } from '../features/cashier/CartLine';
 import { CartContent } from '../features/cashier/CartContent';
 import { CustomerPicker } from '../features/cashier/CustomerPicker';
@@ -39,6 +39,15 @@ describe('Task 4: Cashier & Cart components API & exports', () => {
       height: 411,
     });
     expect(shortLandscapeNav).toBeDefined();
+  });
+
+  test.each([
+    [42, '1 unit', '42 unit'],
+    [5, '1 unit', '5 unit'],
+    [1, '1 potong', '1 potong'],
+    [28, '1 cup', '28 cup'],
+  ])('formats stock %i with unit %s as %s', (stock, unit, expected) => {
+    expect(formatStockLabel(stock, unit)).toBe(expected);
   });
 
   test('ProductCard is memoized and accepts primitive props for optimal rendering', () => {
@@ -137,6 +146,30 @@ describe('Task 4: Cashier & Cart components API & exports', () => {
     expect(source).toContain("import { PosCartSheet } from '../../components/PosCartSheet'");
     expect(source).toContain('<PosCartSheet');
     expect(source).not.toContain("style={{ maxHeight: height * 0.7 }}");
+  });
+
+  test('checkout closes cart sheet before opening payment', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/features/cashier/CashierScreen.tsx'),
+      'utf8'
+    );
+    const checkoutHandler = source.match(
+      /const handleCheckout = useCallback\(\(\) => \{([\s\S]*?)\n\s*\}, \[onCheckout, router\]\);/
+    )?.[1];
+
+    expect(checkoutHandler).toContain('setCartSheetVisible(false)');
+    expect(checkoutHandler).toContain("router.push('/payment')");
+  });
+
+  test('compact cart label stays left beside the item count', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/features/cashier/CashierScreen.tsx'),
+      'utf8'
+    );
+    const titleStyle = source.match(/cartBarTitle:\s*\{([\s\S]*?)\n\s*\},/)?.[1];
+
+    expect(titleStyle).toMatch(/flex:\s*1/);
+    expect(titleStyle).toMatch(/marginLeft:\s*Spacing\.s3/);
   });
 
   test('CashierScreen renders root layout', () => {

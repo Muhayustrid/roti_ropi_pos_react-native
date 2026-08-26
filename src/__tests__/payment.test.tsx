@@ -1,8 +1,11 @@
 import React from 'react';
+import fs from 'node:fs';
+import path from 'node:path';
 import { PaymentScreen } from '../features/payment/PaymentScreen';
 import { SplitPaymentScreen } from '../features/payment/SplitPaymentScreen';
 import { CashEntryScreen } from '../features/payment/CashEntryScreen';
 import { PaymentSuccessScreen } from '../features/payment/PaymentSuccessScreen';
+import { PaymentConfirmationScreen } from '../features/payment/PaymentConfirmationScreen';
 import { ReceiptContent } from '../features/payment/ReceiptContent';
 import { sampleProducts, sampleCustomers, samplePromos, samplePaymentMethods } from '../mock/data';
 import { calculateCart } from '../utils/cart';
@@ -69,6 +72,48 @@ describe('Task 5: Payment, Split Payment, Cash Entry, Receipt & Success Screens'
         onNewTransaction: jest.fn(),
       });
       expect(element).toBeDefined();
+    });
+  });
+
+  describe('Embedded Payment Flow Contracts', () => {
+    test('payment steps support flow-owned headers and confirmation', () => {
+      expect(
+        React.createElement(PaymentScreen, {
+          showHeader: false,
+          onProceedToCash: jest.fn(),
+          onProceedToSplit: jest.fn(),
+          onProceedToConfirmation: jest.fn(),
+        })
+      ).toBeDefined();
+      expect(
+        React.createElement(CashEntryScreen, { showHeader: false })
+      ).toBeDefined();
+      expect(
+        React.createElement(SplitPaymentScreen, {
+          showHeader: false,
+          allocations: { Cash: 20000 },
+          onChangeAllocation: jest.fn(),
+        })
+      ).toBeDefined();
+      expect(
+        React.createElement(PaymentSuccessScreen, { showHeader: false })
+      ).toBeDefined();
+      expect(
+        React.createElement(PaymentConfirmationScreen, {
+          onBack: jest.fn(),
+          onConfirm: jest.fn(),
+        })
+      ).toBeDefined();
+    });
+
+    test('main payment selection no longer owns a nested ResponsiveModal', () => {
+      const source = fs.readFileSync(
+        path.join(process.cwd(), 'src/features/payment/PaymentScreen.tsx'),
+        'utf8'
+      );
+
+      expect(source).not.toContain('<ResponsiveModal');
+      expect(source).toContain('onProceedToConfirmation?.()');
     });
   });
 
