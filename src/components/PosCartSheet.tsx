@@ -92,7 +92,7 @@ export function PosCartSheet({
   style,
 }: PosCartSheetProps) {
   const { height: windowHeight } = useWindowDimensions();
-  const expandedHeight = windowHeight * 0.75;
+  const expandedHeight = windowHeight;
 
   const [snapState, setSnapState] = useState<SheetSnapState>('collapsed');
   const snapStateRef = useRef<SheetSnapState>('collapsed');

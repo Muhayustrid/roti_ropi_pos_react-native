@@ -109,5 +109,15 @@ describe('PosCartSheet state machine and snapping behavior', () => {
 
       expect(source).toContain('useWindowDimensions');
     });
+
+    test('expandedHeight is full screen (windowHeight), not 75% (windowHeight * 0.75)', () => {
+      const source = fs.readFileSync(
+        path.join(process.cwd(), 'src/components/PosCartSheet.tsx'),
+        'utf8'
+      );
+
+      expect(source).not.toContain('windowHeight * 0.75');
+      expect(source).toMatch(/const\s+expandedHeight\s*=\s*windowHeight;/);
+    });
   });
 });
