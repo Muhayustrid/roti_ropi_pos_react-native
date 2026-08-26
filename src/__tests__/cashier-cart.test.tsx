@@ -128,16 +128,14 @@ describe('Task 4: Cashier & Cart components API & exports', () => {
     expect(offerPicker).toBeDefined();
   });
 
-  test('compact cart uses interactive bottom sheet or concrete height', () => {
+  test('compact / non-side-pane cart renders interactive PosCartSheet', () => {
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/features/cashier/CashierScreen.tsx'),
       'utf8'
     );
 
-    // Responsive cart uses either PosCartSheet or height * 0.7 modal
-    const hasCartSheetOrConcreteHeight =
-      source.includes('<PosCartSheet') || source.includes('style={{ height: height * 0.7 }}');
-    expect(hasCartSheetOrConcreteHeight).toBe(true);
+    expect(source).toContain("import { PosCartSheet } from '../../components/PosCartSheet'");
+    expect(source).toContain('<PosCartSheet');
     expect(source).not.toContain("style={{ maxHeight: height * 0.7 }}");
   });
 
